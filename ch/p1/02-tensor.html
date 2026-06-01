@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>2&nbsp; 张量计算的本质 – AI 训练与推理系统工程</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../ch/p1/03-model-memory.html" rel="next">
+<link href="../../ch/p1/01-workload.html" rel="prev">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-21c9fd52d9707277c78c202411d9319b.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-5d1f594113eb0958ef870dc56f6a5a8f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "没有结果",
+    "search-matching-documents-text": "匹配的文档",
+    "search-copy-link-title": "复制搜索链接",
+    "search-hide-matches-text": "隐藏其它匹配结果",
+    "search-more-match-text": "更多匹配结果",
+    "search-more-matches-text": "更多匹配结果",
+    "search-clear-button-title": "清除",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "取消",
+    "search-submit-button-title": "提交",
+    "search-label": "搜索"
+  }
+}</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../../assets/visual.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/01-workload.html">第一篇 AI 系统基础</a></li><li class="breadcrumb-item"><a href="../../ch/p1/02-tensor.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">张量计算的本质</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../../">AI 训练与推理系统工程</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="搜索"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">AI 训练与推理系统工程</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../preface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">前言</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../outline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">全书目录</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">第一篇 AI 系统基础</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/01-workload.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">AI 系统到底在做什么</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/02-tensor.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">张量计算的本质</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/03-model-memory.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">模型、参数与显存</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/04-train-infer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">训练与推理的根本差异</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/05-resource-flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">AI 系统的五条资源流</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/06-lifecycle.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">从单次计算到长期运行任务</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">第二篇 训练流程</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/07-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">数据准备与样本组织</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/08-loading.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">数据加载与预处理</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/09-forward-backward.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/11-metrics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/12-checkpoint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Checkpoint、恢复与容错</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p2/13-finetune.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">微调与继续训练</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">第三篇 推理流程</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/14-serving-problem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">推理服务要解决什么问题</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/15-model-loading.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">模型加载与权重常驻</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/16-token-generation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">分词、上下文处理与逐 token 生成</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/17-kv-cache.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">KV Cache 与显存占用</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/18-batching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">batching、队列与流式返回</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/19-latency-throughput.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">延迟、吞吐与并发</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p3/20-failure.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">推理服务的失败模式</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">第四篇 GPU 与性能</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/21-gpu-cpu.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">GPU 与 CPU 的分工</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/22-sm-tensor-kernel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">SM、Tensor Core 与 kernel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/23-hbm-memory.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">HBM、显存带宽与显存容量</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/24-interconnect.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">PCIe、NVLink、RDMA 与 InfiniBand</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/25-gpu-utilization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">GPU 利用率到底是什么</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/26-training-bottlenecks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">训练性能瓶颈分析</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4-gpu/27-inference-bottlenecks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">推理性能瓶颈分析</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">第五篇 分布式 AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/28-distributed-overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">第六篇 AI 平台化</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p6/35-platformization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">第七篇 Kubernetes 基础架构</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/06-k8s.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">第八篇 训练任务架构</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p4/24-kubeflow-v1.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">第九篇 推理服务架构</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p7/50-llm-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" role="navigation" aria-expanded="true">
+ <span class="menu-text">第十篇 调度与资源优化</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p1/05-scheduling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" role="navigation" aria-expanded="true">
+ <span class="menu-text">第十一篇 数据处理与 Ray</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p11/73-ray-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" role="navigation" aria-expanded="true">
+ <span class="menu-text">第十二篇 生产实战</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" role="navigation" aria-expanded="true" aria-label="展开或折叠此栏">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p12/81-platform-design.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">参考资料</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">目录</h2>
+   
+  <ul>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">2.1</span> 本章要回答的问题</a></li>
+  <li><a href="#张量tensor是什么" id="toc-张量tensor是什么" class="nav-link" data-scroll-target="#张量tensor是什么"><span class="header-section-number">2.2</span> 张量（tensor）是什么</a></li>
+  <li><a href="#形状为什么重要" id="toc-形状为什么重要" class="nav-link" data-scroll-target="#形状为什么重要"><span class="header-section-number">2.3</span> 形状为什么重要</a></li>
+  <li><a href="#为什么矩阵乘法是核心" id="toc-为什么矩阵乘法是核心" class="nav-link" data-scroll-target="#为什么矩阵乘法是核心"><span class="header-section-number">2.4</span> 为什么矩阵乘法是核心</a></li>
+  <li><a href="#一个-batch-如何变成计算" id="toc-一个-batch-如何变成计算" class="nav-link" data-scroll-target="#一个-batch-如何变成计算"><span class="header-section-number">2.5</span> 一个 batch 如何变成计算</a></li>
+  <li><a href="#计算不是唯一成本" id="toc-计算不是唯一成本" class="nav-link" data-scroll-target="#计算不是唯一成本"><span class="header-section-number">2.6</span> 计算不是唯一成本</a></li>
+  <li><a href="#从模型代码到实际执行" id="toc-从模型代码到实际执行" class="nav-link" data-scroll-target="#从模型代码到实际执行"><span class="header-section-number">2.7</span> 从模型代码到实际执行</a></li>
+  <li><a href="#训练和推理对显存的要求不同" id="toc-训练和推理对显存的要求不同" class="nav-link" data-scroll-target="#训练和推理对显存的要求不同"><span class="header-section-number">2.8</span> 训练和推理对显存的要求不同</a></li>
+  <li><a href="#常见误区" id="toc-常见误区" class="nav-link" data-scroll-target="#常见误区"><span class="header-section-number">2.9</span> 常见误区</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">2.10</span> 本章小结</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/01-workload.html">第一篇 AI 系统基础</a></li><li class="breadcrumb-item"><a href="../../ch/p1/02-tensor.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">张量计算的本质</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">张量计算的本质</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="本章要回答的问题" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">2.1</span> 本章要回答的问题</h2>
+<p>上一章说过，AI 系统会把数据变成张量，再把张量送进模型计算。本章继续追问：<strong>张量到底是什么，为什么 AI 计算最后会变成 GPU 上的大量张量计算？</strong></p>
+<p>这一章不先讲框架，也不先讲部署。我们先把最基础的计算直觉建立起来：</p>
+<blockquote class="blockquote">
+<p><code>tensor</code> 是有形状的数字数据；模型计算就是让这些数字按照固定规则反复做乘法、加法、归一化、筛选和重排。</p>
+</blockquote>
+<p>理解 <code>tensor</code>，才能理解后面的 <code>batch</code>、显存、GPU、分布式通信和性能优化。至于 <code>kernel</code>、<code>warp</code>、<code>SM</code> 这些 GPU 执行细节，会在第四篇正式展开。本章先把 <code>kernel</code> 降级成一个够用的理解：它是 GPU 端被启动执行的一段底层计算程序；现在不需要记住 grid、block、thread 的细节，只要知道高层 <code>operator</code> 最终会落到硬件可执行的实现上。</p>
+</section>
+<section id="张量tensor是什么" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="张量tensor是什么"><span class="header-section-number">2.2</span> 张量（tensor）是什么</h2>
+<p><code>tensor</code> 可以先理解成“有形状的数字数组”。它不是神秘概念，只是比普通数组更强调 shape、dtype、device 和自动求导这些工程属性。PyTorch 教程把 tensor 描述为类似数组和矩阵的专门数据结构，用于编码模型的 input、output 和 parameters，并且可以运行在 GPU 等加速器上 <span class="citation" data-cites="pytorch-tensor-tutorial">(<a href="#ref-pytorch-tensor-tutorial" role="doc-biblioref"><span>《Tensors》</span>, 不详</a>)</span>。</p>
+<section class="visual-panel tensor-shapes-panel" aria-labelledby="tensor-shapes-title">
+  <div class="visual-panel__header">
+    <div>
+      <p class="visual-panel__eyebrow">Shape Map</p>
+      <h3 class="visual-panel__title anchored" id="tensor-shapes-title">张量不是抽象名词，而是“有形状的数据”</h3>
+    </div>
+    <p class="visual-panel__note">形状决定一次计算有多少数据、多少并行度、多少显存占用。</p>
+  </div>
+
+  <div class="shape-gallery">
+    <div class="shape-card">
+      <strong>0 维：标量</strong>
+      <span>一个数字，例如 loss=0.37。</span>
+      <div class="shape-drawing"><i class="shape-dot"></i></div>
+    </div>
+    <div class="shape-card">
+      <strong>1 维：向量</strong>
+      <span>一列数字，例如一个 token 的向量表示。</span>
+      <div class="shape-drawing shape-vector">
+        <i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+    <div class="shape-card">
+      <strong>2 维：矩阵</strong>
+      <span>一张数字表，例如线性层的权重。</span>
+      <div class="shape-drawing shape-matrix">
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+    <div class="shape-card">
+      <strong>更高维：批量数据</strong>
+      <span>一批图片或文本，例如 [batch, seq, hidden]。</span>
+      <div class="shape-drawing shape-cube">
+        <i></i><i></i><i></i>
+        <i></i><i></i><i></i>
+        <i></i><i></i><i></i>
+      </div>
+    </div>
+  </div>
+</section>
+<p>几个常见例子：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>数据</th>
+<th>tensor shape 示例</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>一张灰度图片</td>
+<td><code>[height, width]</code></td>
+<td>每个位置是一个像素值</td>
+</tr>
+<tr class="even">
+<td>一批彩色图片</td>
+<td><code>[batch, channel, height, width]</code></td>
+<td>一批图片，每张图片有多个颜色通道</td>
+</tr>
+<tr class="odd">
+<td>一批文本 token</td>
+<td><code>[batch, sequence_length]</code></td>
+<td>一批文本，每条文本有一串 token 编号</td>
+</tr>
+<tr class="even">
+<td>token 向量表示</td>
+<td><code>[batch, sequence_length, hidden_size]</code></td>
+<td>每个 token 被表示成一个向量</td>
+</tr>
+<tr class="odd">
+<td>线性层权重</td>
+<td><code>[input_size, output_size]</code></td>
+<td>模型参数矩阵</td>
+</tr>
+</tbody>
+</table>
+<p>这里的 <code>batch</code> 是“一批样本”的意思。一次只处理一个样本，GPU 并行能力很难发挥；一次处理一个 <code>batch</code>，GPU 可以把大量相似计算一起做。</p>
+</section>
+<section id="形状为什么重要" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="形状为什么重要"><span class="header-section-number">2.3</span> 形状为什么重要</h2>
+<p>tensor shape 不是算法细枝末节。对系统工程来说，shape 会直接决定四件事：</p>
+<ol type="1">
+<li><strong>有多少计算量。</strong> 形状越大，参与计算的数字越多。</li>
+<li><strong>占多少显存。</strong> 每个数字都要占空间，形状越大，中间结果越大。</li>
+<li><strong>能否并行。</strong> 形状合适时，GPU 可以把很多计算同时铺开。</li>
+<li><strong>数据怎么搬。</strong> 不同布局会影响显存读取是否连续，进而影响速度。</li>
+</ol>
+<p>举个例子，一个文本 tensor 的 shape 是 <code>[32, 2048, 4096]</code>：</p>
+<ul>
+<li><code>32</code> 表示一批里有 32 条样本。</li>
+<li><code>2048</code> 表示每条样本有 2048 个 token 位置。</li>
+<li><code>4096</code> 表示每个 token 用 4096 维向量表示。</li>
+</ul>
+<p>这个 tensor 一共有 <code>32 x 2048 x 4096</code> 个数字。即使每个数字只占 2 字节，也会占用大量显存。后面训练和推理的很多优化，本质上都在管理这些数字的计算和存放。</p>
+</section>
+<section id="为什么矩阵乘法是核心" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="为什么矩阵乘法是核心"><span class="header-section-number">2.4</span> 为什么矩阵乘法是核心</h2>
+<p>神经网络里有很多操作，但矩阵乘法是最核心的一类。原因很简单：模型 parameters 通常就是矩阵，输入数据也会变成矩阵或高维 tensor。模型计算经常是在做“输入乘以权重”。</p>
+<p>线性层可以写成：</p>
+<pre class="text"><code>Y = XW + b</code></pre>
+<p>这里：</p>
+<ul>
+<li><code>X</code> 是输入 tensor。</li>
+<li><code>W</code> 是模型权重。</li>
+<li><code>b</code> 是偏置。</li>
+<li><code>Y</code> 是输出。</li>
+</ul>
+<section class="visual-panel matrix-lab-panel" aria-labelledby="matrix-lab-title">
+  <div class="visual-panel__header">
+    <div>
+      <p class="visual-panel__eyebrow">Animated Computation</p>
+      <h3 class="visual-panel__title anchored" id="matrix-lab-title">矩阵乘法：一行乘一列，得到一个输出格子</h3>
+    </div>
+    <p class="visual-panel__note">被高亮的一行和一列，会共同决定右侧绿色输出单元。</p>
+  </div>
+
+  <div class="matrix-lab">
+    <div class="matrix-lab__equation" aria-label="矩阵乘法示意">
+      <div class="matrix matrix--a" aria-label="输入矩阵 A">
+        <span class="matrix__cell matrix__cell--row">a11</span>
+        <span class="matrix__cell matrix__cell--row">a12</span>
+        <span class="matrix__cell matrix__cell--row">a13</span>
+        <span class="matrix__cell">a21</span>
+        <span class="matrix__cell">a22</span>
+        <span class="matrix__cell">a23</span>
+      </div>
+      <div class="matrix-lab__op">x</div>
+      <div class="matrix matrix--b" aria-label="权重矩阵 B">
+        <span class="matrix__cell matrix__cell--col">b11</span>
+        <span class="matrix__cell">b12</span>
+        <span class="matrix__cell matrix__cell--col">b21</span>
+        <span class="matrix__cell">b22</span>
+        <span class="matrix__cell matrix__cell--col">b31</span>
+        <span class="matrix__cell">b32</span>
+      </div>
+      <div class="matrix-lab__op">=</div>
+      <div class="matrix matrix--c" aria-label="输出矩阵 C">
+        <span class="matrix__cell matrix__cell--out">c11</span>
+        <span class="matrix__cell">c12</span>
+        <span class="matrix__cell">c21</span>
+        <span class="matrix__cell">c22</span>
+      </div>
+    </div>
+
+    <p class="matrix-lab__caption">直觉上，矩阵乘法就是把输入数据和模型权重反复做“乘加”。神经网络之所以适合 GPU，是因为这样的乘加可以大规模并行执行。</p>
+  </div>
+</section>
+<p>大语言模型里的注意力计算、前馈网络、投影层，也大量依赖矩阵乘法。实际系统里会有 FlashAttention、算子融合、低精度计算等优化，但底层问题没有变：<strong>大量数字要在有限显存和 GPU 计算单元之间高效流动。</strong></p>
+</section>
+<section id="一个-batch-如何变成计算" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="一个-batch-如何变成计算"><span class="header-section-number">2.5</span> 一个 batch 如何变成计算</h2>
+<p>把 batch 理解成“多条样本合在一起算”，会更容易理解训练和推理。</p>
+<p>假设一次处理 32 条文本，每条文本 2048 个 token，每个 token 用 4096 维向量表示。模型并不是一条一条慢慢算，而是把它们组织成 tensor，让 GPU 同时处理大量位置上的计算。</p>
+<section class="visual-panel tensor-demo-panel" aria-labelledby="tensor-minibatch-title">
+  <div class="visual-panel__header">
+    <div>
+      <p class="visual-panel__eyebrow">Tensor View</p>
+      <h3 class="visual-panel__title anchored" id="tensor-minibatch-title">把“文本请求”翻译成“GPU 能计算的张量”</h3>
+    </div>
+    <p class="visual-panel__note">用户看到文本；运行时看到 batch；GPU 最终只看到张量和 kernel。</p>
+  </div>
+
+  <div class="tensor-demo">
+    <div class="tensor-stack">
+      <span>Input Tensor</span>
+      <strong>[32, 2048]</strong>
+      <small>32 条样本，每条 2048 个 token 编号，通常先在 CPU 侧准备。</small>
+    </div>
+    <div class="tensor-op">Embedding</div>
+    <div class="tensor-stack tensor-stack--mid">
+      <span>Hidden States</span>
+      <strong>[32, 2048, 4096]</strong>
+      <small>token 编号变成向量，进入注意力和 MLP 计算。</small>
+    </div>
+    <div class="tensor-op">Kernel</div>
+    <div class="tensor-stack tensor-stack--gpu">
+      <span>Output Tensor</span>
+      <strong>损失 / 输出概率</strong>
+      <small>训练用损失更新参数；推理用输出概率选择下一个 token。</small>
+    </div>
+  </div>
+
+  <p class="tensor-demo__note">一针见血地说：AI 框架写的是模型逻辑，GPU 执行的是张量算子，系统工程要保障这些张量能持续、高效、可恢复地流动。</p>
+</section>
+<p>这就是 batch 带来的好处：它把很多相似的小计算组织成大块计算，让 GPU 更容易发挥并行能力。</p>
+<p>但 batch 不是越大越好。它会带来三种代价：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>代价</th>
+<th>表现</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>显存占用变大</td>
+<td>中间结果、缓存和输出都变大</td>
+<td>batch 太大可能直接 OOM</td>
+</tr>
+<tr class="even">
+<td>数据供给压力变大</td>
+<td>CPU、存储、解码和预处理要更快</td>
+<td>数据慢会让 GPU 空等</td>
+</tr>
+<tr class="odd">
+<td>延迟可能变大</td>
+<td>推理请求要等待凑批</td>
+<td>用户可能更晚看到结果</td>
+</tr>
+</tbody>
+</table>
+<p>所以 batch 既是算法参数，也是系统参数。训练关注它对吞吐和收敛的影响，推理关注它对吞吐和延迟的平衡。</p>
+</section>
+<section id="计算不是唯一成本" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="计算不是唯一成本"><span class="header-section-number">2.6</span> 计算不是唯一成本</h2>
+<p>很多人第一次理解 AI 计算时，会以为瓶颈一定在“算得不够快”。实际并不总是这样。</p>
+<p>一次 tensor 计算至少包含三类成本：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>成本</th>
+<th>含义</th>
+<th>典型瓶颈</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>计算成本</td>
+<td>执行乘法、加法、归一化、激活等操作</td>
+<td>GPU 算力、Tensor Core、operator 实现</td>
+</tr>
+<tr class="even">
+<td>内存成本</td>
+<td>从显存读取输入、权重和中间结果，再写回输出</td>
+<td>HBM 带宽、缓存命中、数据布局</td>
+</tr>
+<tr class="odd">
+<td>调度成本</td>
+<td>启动和安排底层执行任务、处理依赖</td>
+<td>后端调度、CPU-GPU 同步、过多小算子</td>
+</tr>
+</tbody>
+</table>
+<p>有些操作计算很多、数据复用高，叫计算密集型。<br>
+有些操作计算不多，但频繁读写大量数据，叫内存带宽受限。</p>
+<p>这就是为什么只看 GPU 利用率不够。GPU 忙不忙是一回事，忙得是否有效是另一回事。</p>
+</section>
+<section id="从模型代码到实际执行" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="从模型代码到实际执行"><span class="header-section-number">2.7</span> 从模型代码到实际执行</h2>
+<p>在 PyTorch 或 TensorFlow 里，用户写的是高层模型代码，例如：</p>
+<pre class="text"><code>Y = XW + b</code></pre>
+<p>但机器不会直接理解“线性层”这个概念。框架会把高层代码拆成一组 <code>operator</code>，也就是 tensor 操作，例如矩阵乘法、加法、归一化、激活函数、softmax、attention 等。</p>
+<p>到这里先不要急着理解 <code>kernel</code>。更适合本章的说法是：</p>
+<blockquote class="blockquote">
+<p>用户写的是模型逻辑；框架看到的是 <code>operator</code>；底层后端执行的是这些 <code>operator</code> 对应的高性能实现。</p>
+</blockquote>
+<p>如果 tensor 在 CPU 上，后端会调用 CPU 侧实现；如果 tensor 在 NVIDIA GPU 上，后端通常会经过 CUDA、cuBLAS、cuDNN 等库，把计算交给 GPU 执行。CUDA 编程指南把在 GPU 设备上执行的函数称为 kernel，并说明 kernel 会按 grid、block、thread 的层次启动 <span class="citation" data-cites="nvidia-cuda-programming-guide">(<a href="#ref-nvidia-cuda-programming-guide" role="doc-biblioref"><span>《CUDA C++ Programming Guide》</span>, 不详</a>)</span>。这些 GPU 结构会在下一章讲清楚。</p>
+<p>可以把执行链路理解成：</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TB
+  Code["模型代码&lt;br/&gt;PyTorch / TensorFlow"]:::code --&gt; Op["operator&lt;br/&gt;矩阵乘法 / 归一化 / attention"]:::op
+  Op --&gt; Backend["后端实现&lt;br/&gt;CPU / CUDA / cuBLAS / cuDNN"]:::rt
+  Backend --&gt; Hardware["硬件执行&lt;br/&gt;CPU 或 GPU"]:::kernel
+  Hardware &lt;--&gt; Memory["内存 / 显存&lt;br/&gt;输入、权重、中间结果、输出"]:::mem
+
+  classDef code fill:#f8fafc,stroke:#334155,color:#0f172a,stroke-width:2px
+  classDef op fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:2px
+  classDef rt fill:#f0fdf4,stroke:#16a34a,color:#14532d,stroke-width:2px
+  classDef kernel fill:#fff7ed,stroke:#f97316,color:#7c2d12,stroke-width:2px
+  classDef mem fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>这条链路解释了一个重要事实：Python 代码是入口，但性能主要由 tensor shape、operator 实现、后端调度、内存访问和硬件特性决定。</p>
+<p>同一个模型，换一种 <code>batch</code>、dtype、operator 实现或算子融合策略，性能可能完全不同。下一章讲 GPU 时，再把 “GPU 端真正执行的 kernel 如何映射到 thread、block、warp、SM” 展开。</p>
+</section>
+<section id="训练和推理对显存的要求不同" class="level2" data-number="2.8">
+<h2 data-number="2.8" class="anchored" data-anchor-id="训练和推理对显存的要求不同"><span class="header-section-number">2.8</span> 训练和推理对显存的要求不同</h2>
+<p>训练和推理都使用 tensor，但它们保留的 tensor 不一样。</p>
+<p>训练要更新参数，因此需要保存更多中间信息：</p>
+<ul>
+<li>模型参数。</li>
+<li>前向计算产生的 <code>activation</code>，也就是中间激活。</li>
+<li>反向计算得到的 <code>gradient</code>，也就是梯度。</li>
+<li>优化器状态，例如 Adam 的一阶、二阶动量。</li>
+<li>临时 buffer、通信 buffer 和运行时开销。</li>
+</ul>
+<p>推理通常不更新参数，所以没有梯度和优化器状态。但大语言模型推理会引入另一类显存压力：上下文缓存，也就是 KV Cache。上下文越长、并发越高，上下文缓存越可能成为服务容量上限。</p>
+<p>这也是为什么训练优化和推理优化不能套用同一套指标。训练常看样本吞吐和 step time；推理常看首 token 延迟、输出速度、并发和每 token 成本。</p>
+</section>
+<section id="常见误区" class="level2" data-number="2.9">
+<h2 data-number="2.9" class="anchored" data-anchor-id="常见误区"><span class="header-section-number">2.9</span> 常见误区</h2>
+<p><strong>误区一：模型写在 Python 里，所以 Python 一定是主要性能瓶颈。</strong><br>
+大多数核心计算会交给底层后端实现。Python 可能影响数据处理和调度，但矩阵乘法、卷积、attention 等重计算通常由高性能库和硬件加速执行。</p>
+<p><strong>误区二：矩阵乘法快，模型就一定快。</strong><br>
+不一定。真实模型还会受显存带宽、数据布局、operator 调度、同步、数据加载和通信影响。</p>
+<p><strong>误区三：batch 越大越好。</strong><br>
+batch 变大会增加显存占用，也可能放大通信压力；推理里还会增加等待时间。</p>
+<p><strong>误区四：推理显存只由模型权重决定。</strong><br>
+对大语言模型推理来说，上下文缓存会随上下文长度和并发数增长，常常决定服务容量上限。</p>
+</section>
+<section id="本章小结" class="level2" data-number="2.10">
+<h2 data-number="2.10" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">2.10</span> 本章小结</h2>
+<p>读完本章，需要记住五个判断：</p>
+<ul>
+<li>tensor 是有形状的数据，不是抽象黑话。</li>
+<li>tensor shape 决定计算量、显存占用、并行度和数据搬运方式。</li>
+<li>矩阵乘法重要，是因为模型参数和输入数据经常以矩阵形式参与计算。</li>
+<li>AI 性能不只取决于算力，还取决于显存访问、operator 调度、底层执行和数据供给。</li>
+<li>训练和推理保留的 tensor 不同，所以显存压力和优化目标也不同。</li>
+</ul>
+<p>下一章会继续讲模型、parameters 与显存：tensor 计算为什么会消耗显存，训练和推理分别把显存花在什么地方。GPU 的执行结构会在第四篇系统展开。</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-nvidia-cuda-programming-guide" class="csl-entry" role="listitem">
+<span>《CUDA C++ Programming Guide》</span>. 不详. <a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/" class="uri">https://docs.nvidia.com/cuda/cuda-c-programming-guide/</a>.
+</div>
+<div id="ref-pytorch-tensor-tutorial" class="csl-entry" role="listitem">
+<span>《Tensors》</span>. 不详. <a href="https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html" class="uri">https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html</a>.
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "已复制");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "已复制");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../../ch/p1/01-workload.html" class="pagination-link" aria-label="AI 系统到底在做什么">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">AI 系统到底在做什么</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../../ch/p1/03-model-memory.html" class="pagination-link" aria-label="模型、参数与显存">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">模型、参数与显存</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
