@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>30&nbsp; FSDP 与 ZeRO – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -50,8 +50,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p5/31-tensor-parallel.html" rel="next">
+<link href="../../ch/p5/29-data-parallel-ddp.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +104,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/30-fsdp-zero.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +223,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -376,7 +376,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/30-fsdp-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/30-fsdp-zero.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span></a>
   </div>
 </li>
@@ -541,22 +541,25 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">30.1</span> 本章要回答的问题</a></li>
+  <li><a href="#ddp-的显存冗余" id="toc-ddp-的显存冗余" class="nav-link" data-scroll-target="#ddp-的显存冗余"><span class="header-section-number">30.2</span> DDP 的显存冗余</a></li>
+  <li><a href="#zero-的三个阶段" id="toc-zero-的三个阶段" class="nav-link" data-scroll-target="#zero-的三个阶段"><span class="header-section-number">30.3</span> ZeRO 的三个阶段</a></li>
+  <li><a href="#fsdp-的执行直觉" id="toc-fsdp-的执行直觉" class="nav-link" data-scroll-target="#fsdp-的执行直觉"><span class="header-section-number">30.4</span> FSDP 的执行直觉</a></li>
+  <li><a href="#fsdpzero-省的是显存不一定省时间" id="toc-fsdpzero-省的是显存不一定省时间" class="nav-link" data-scroll-target="#fsdpzero-省的是显存不一定省时间"><span class="header-section-number">30.5</span> FSDP/ZeRO 省的是显存，不一定省时间</a></li>
+  <li><a href="#sharded-checkpoint-的含义" id="toc-sharded-checkpoint-的含义" class="nav-link" data-scroll-target="#sharded-checkpoint-的含义"><span class="header-section-number">30.6</span> sharded checkpoint 的含义</a></li>
+  <li><a href="#offload-不是免费午餐" id="toc-offload-不是免费午餐" class="nav-link" data-scroll-target="#offload-不是免费午餐"><span class="header-section-number">30.7</span> offload 不是免费午餐</a></li>
+  <li><a href="#一个选择案例" id="toc-一个选择案例" class="nav-link" data-scroll-target="#一个选择案例"><span class="header-section-number">30.8</span> 一个选择案例</a></li>
+  <li><a href="#平台需要提供什么" id="toc-平台需要提供什么" class="nav-link" data-scroll-target="#平台需要提供什么"><span class="header-section-number">30.9</span> 平台需要提供什么</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">30.10</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/30-fsdp-zero.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></h1>
 </div>
 
 
@@ -573,176 +576,262 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="30.1">
+<h2 data-number="30.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">30.1</span> 本章要回答的问题</h2>
+<p>DDP 的优势是简单稳定，但它有一个根本限制：<strong>每张 GPU 通常都保存完整训练状态。</strong> 当模型变大时，显存不是被一个东西占满，而是被 parameters、gradients、optimizer state 和 activation 一起占满。</p>
+<p>FSDP 和 ZeRO 解决的问题不是“让多卡更快”这么简单，而是：<strong>把训练状态切成 shard，让每张 GPU 只常驻一部分状态，从而训练更大的模型。</strong></p>
+<p>PyTorch FSDP 的目标是对模型参数、梯度和优化器状态做分片，从而降低每个设备的显存占用 <span class="citation" data-cites="pytorch-fsdp">(<a href="#ref-pytorch-fsdp" role="doc-biblioref"><span>《Getting Started with Fully Sharded Data Parallel》</span>, 不详</a>)</span>。DeepSpeed ZeRO 的核心思想也是去掉数据并行中的冗余 optimizer、gradient 和 parameter 状态 <span class="citation" data-cites="deepspeed-zero">(<a href="#ref-deepspeed-zero" role="doc-biblioref"><span>《ZeRO: Zero Redundancy Optimizer》</span>, 不详</a>)</span>。</p>
+<section class="visual-panel shard-panel" aria-labelledby="shard-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">State Sharding</p>
+      <h3 class="visual-panel__title anchored" id="shard-title">FSDP / ZeRO：用通信换显存，把训练状态分片</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创机制图；概念依据 PyTorch FSDP 与 DeepSpeed ZeRO。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
+  <div class="shard-board">
+    <div class="shard-board__bars">
+      <div class="shard-row">
+        <strong>DDP</strong>
+        <div class="shard-bar shard-bar--full"><span>parameters</span><span>gradients</span><span>optimizer state</span></div>
+        <em>每张卡都有完整账本</em>
       </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
+      <div class="shard-row">
+        <strong>ZeRO-1</strong>
+        <div class="shard-bar"><span class="full">parameters</span><span class="full">gradients</span><span>optimizer shard</span></div>
+        <em>先切 optimizer state</em>
+      </div>
+      <div class="shard-row">
+        <strong>ZeRO-2</strong>
+        <div class="shard-bar"><span class="full">parameters</span><span>gradient shard</span><span>optimizer shard</span></div>
+        <em>再切 gradients</em>
+      </div>
+      <div class="shard-row">
+        <strong>ZeRO-3 / FSDP</strong>
+        <div class="shard-bar"><span>parameter shard</span><span>gradient shard</span><span>optimizer shard</span></div>
+        <em>训练状态都分片</em>
       </div>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="shard-board__cycle">
+      <div class="shard-cycle__step shard-cycle__step--gather"><strong>AllGather</strong><span>临时拼齐当前模块参数</span></div>
+      <div class="shard-cycle__step shard-cycle__step--compute"><strong>Forward / Backward</strong><span>只在需要时持有完整片段</span></div>
+      <div class="shard-cycle__step shard-cycle__step--scatter"><strong>ReduceScatter</strong><span>梯度重新切回 shard</span></div>
+      <p>结论：显存下降，但通信、checkpoint 和恢复复杂度上升。</p>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
-</tr>
-<tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
-</tr>
-<tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
-</tr>
-</tbody>
-</table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
-</section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="ddp-的显存冗余" class="level2" data-number="30.2">
+<h2 data-number="30.2" class="anchored" data-anchor-id="ddp-的显存冗余"><span class="header-section-number">30.2</span> DDP 的显存冗余</h2>
+<p>以 Adam 训练为例，每个 rank 可能需要保存：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
+<li><strong>parameters</strong>：模型权重。</li>
+<li><strong>gradients</strong>：backward 产生的梯度。</li>
+<li><strong>optimizer state</strong>：Adam 的动量、方差、step 等状态。</li>
+<li><strong>activation</strong>：forward 中间结果，用于 backward。</li>
 </ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
+<p>DDP 复制模型副本后，每个 rank 都要承担这些状态。GPU 越多，集群总显存越大，但单张 GPU 上的模型状态并不会自动变小。</p>
+<p>所以会出现一个反直觉现象：你有 8 张 80GB GPU，总显存 640GB，但如果单卡必须常驻 100GB 训练状态，DDP 仍然跑不起来。因为 DDP 扩的是吞吐，不是单卡容量。</p>
 </section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
+<section id="zero-的三个阶段" class="level2" data-number="30.3">
+<h2 data-number="30.3" class="anchored" data-anchor-id="zero-的三个阶段"><span class="header-section-number">30.3</span> ZeRO 的三个阶段</h2>
+<p>ZeRO 可以按“切掉哪类冗余状态”来理解。</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
+<th>阶段</th>
+<th>切分对象</th>
+<th>直觉</th>
+<th>主要收益</th>
+<th>主要代价</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
+<td>ZeRO-1</td>
+<td>optimizer state</td>
+<td>每张卡只保存一部分优化器账本</td>
+<td>降低 optimizer 显存</td>
+<td>optimizer step 需要通信</td>
 </tr>
 <tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
+<td>ZeRO-2</td>
+<td>optimizer state + gradients</td>
+<td>gradients 也不完整复制</td>
+<td>进一步降显存</td>
+<td>backward 后通信更多</td>
 </tr>
 <tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
+<td>ZeRO-3</td>
+<td>optimizer state + gradients + parameters</td>
+<td>parameters 也分片</td>
+<td>单卡显存下降最多</td>
+<td>forward/backward 前后频繁 AllGather</td>
 </tr>
 </tbody>
 </table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
+<p>这张表要抓住一个重点：ZeRO stage 越高，显存越省，但通信和实现复杂度越高。不是 stage 越高就越好，而是要看显存瓶颈是否值得用通信换。</p>
 </section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
+<section id="fsdp-的执行直觉" class="level2" data-number="30.4">
+<h2 data-number="30.4" class="anchored" data-anchor-id="fsdp-的执行直觉"><span class="header-section-number">30.4</span> FSDP 的执行直觉</h2>
+<p>FSDP 可以理解为在模型模块边界上做 state sharding。每个 rank 常驻自己负责的 parameter shard。需要计算某一段模块时，再临时 AllGather 出完整参数用于 forward 或 backward；计算完成后释放不需要常驻的完整参数。</p>
+<p>一个简化的生命周期是：</p>
+<pre class="text"><code>常驻：每个 rank 保存 parameter shard
+forward 前：AllGather 当前模块完整 parameters
+forward：计算 activation
+forward 后：释放完整 parameters，只保留 shard
+backward 前后：按需要再次聚合和切分
+gradient 同步：ReduceScatter 得到 gradient shard
+optimizer step：每个 rank 更新自己的 shard</code></pre>
+<p>它像把一本大账本拆给多个人保管。每个人平时只拿自己的页；需要查某一章时，临时把这一章拼齐；查完再拆回去。</p>
+</section>
+<section id="fsdpzero-省的是显存不一定省时间" class="level2" data-number="30.5">
+<h2 data-number="30.5" class="anchored" data-anchor-id="fsdpzero-省的是显存不一定省时间"><span class="header-section-number">30.5</span> FSDP/ZeRO 省的是显存，不一定省时间</h2>
+<p>FSDP/ZeRO 的收益和代价可以放在同一张表里看。</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
+<th>维度</th>
+<th>收益</th>
+<th>代价</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
+<td>显存</td>
+<td>单卡常驻状态下降，可以训练更大模型</td>
+<td>通信缓冲和临时聚合仍会占显存</td>
 </tr>
 <tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
+<td>通信</td>
+<td>分片让每次 rank 只持有部分状态</td>
+<td>AllGather、ReduceScatter 更频繁</td>
 </tr>
 <tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
+<td>checkpoint</td>
+<td>可以保存 sharded checkpoint</td>
+<td>保存、加载、合并、迁移更复杂</td>
 </tr>
 <tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
+<td>拓扑</td>
+<td>单机或高速网络下效果更好</td>
+<td>跨慢网络容易被通信放大</td>
+</tr>
+<tr class="odd">
+<td>调参</td>
+<td>可以增大模型或 batch</td>
+<td>需要调 wrap 策略、prefetch、bucket、offload</td>
 </tr>
 </tbody>
 </table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
+<p>因此生产判断要非常直接：如果模型 DDP 能放下，且训练瓶颈不是显存，贸然切 FSDP/ZeRO 可能变慢。如果 DDP 放不下，FSDP/ZeRO 才是进入大模型训练的关键路径。</p>
 </section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
+<section id="sharded-checkpoint-的含义" class="level2" data-number="30.6">
+<h2 data-number="30.6" class="anchored" data-anchor-id="sharded-checkpoint-的含义"><span class="header-section-number">30.6</span> sharded checkpoint 的含义</h2>
+<p>单卡或 DDP checkpoint 通常比较直观：保存完整 model state dict、optimizer state、scheduler 和 step。FSDP/ZeRO 下，状态被切成 shard，checkpoint 也可能是分片的。</p>
+<p>这会带来几个问题：</p>
 <ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li>恢复时需要知道 world size、rank 映射和 shard 元数据。</li>
+<li>从 8 卡恢复到 16 卡，可能需要 reshard。</li>
+<li>保存速度受存储和网络影响，所有 rank 同时写可能打爆对象存储或并行文件系统。</li>
+<li>推理导出可能需要把 sharded checkpoint 合并为完整 weights，或者导出为推理框架支持的格式。</li>
 </ul>
+<p>平台工程不能只问“checkpoint 文件有没有”。要问：</p>
+<pre class="text"><code>这是 full checkpoint 还是 sharded checkpoint？
+能否跨 world size 恢复？
+是否包含 optimizer state？
+保存期间会不会长时间阻塞训练？
+失败后能否定位哪个 rank 的 shard 损坏？</code></pre>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="offload-不是免费午餐" class="level2" data-number="30.7">
+<h2 data-number="30.7" class="anchored" data-anchor-id="offload-不是免费午餐"><span class="header-section-number">30.7</span> offload 不是免费午餐</h2>
+<p>FSDP/ZeRO 常见扩展能力包括 CPU offload 或 NVMe offload，即把部分状态放到 CPU memory 或本地盘上。这能进一步降低 HBM 压力，但会引入数据搬运成本。</p>
+<p>判断 offload 是否合适，要看瓶颈：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>场景</th>
+<th>offload 可能有效吗</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>HBM 放不下，但 PCIe/CPU memory 还够</td>
+<td>可能有效</td>
+</tr>
+<tr class="even">
+<td>训练已经被 CPU 或 PCIe 拖慢</td>
+<td>可能更慢</td>
+</tr>
+<tr class="odd">
+<td>本地 NVMe 性能稳定且模型极大</td>
+<td>可作为容量兜底</td>
+</tr>
+<tr class="even">
+<td>在线推理追求低延迟</td>
+<td>通常要非常谨慎</td>
+</tr>
+</tbody>
+</table>
+<p>offload 的本质是把显存压力转移到更慢的层级。它是容量工具，不是性能魔法。</p>
+</section>
+<section id="一个选择案例" class="level2" data-number="30.8">
+<h2 data-number="30.8" class="anchored" data-anchor-id="一个选择案例"><span class="header-section-number">30.8</span> 一个选择案例</h2>
+<p>假设你要训练一个 30B 模型：</p>
+<ul>
+<li>单卡 80GB 放不下完整训练状态。</li>
+<li>8 卡 DDP 仍然 OOM。</li>
+<li>数据加载很快，主要瓶颈是显存。</li>
+<li>机器内有 NVLink，跨节点有 RDMA。</li>
+</ul>
+<p>此时合理路线通常是：</p>
+<ol type="1">
+<li>先确认混合精度、activation checkpointing 是否已经打开。</li>
+<li>用 FSDP 或 ZeRO-3 切 parameters、gradients、optimizer state。</li>
+<li>优先把强通信放在单机高速互联内。</li>
+<li>使用 sharded checkpoint，验证保存和恢复。</li>
+<li>观察 rank 级别的 AllGather、ReduceScatter 时间。</li>
+</ol>
+<p>如果换成一个 1B 模型，DDP 已经可以稳定训练，那么 FSDP/ZeRO 可能只是增加复杂度。</p>
+</section>
+<section id="平台需要提供什么" class="level2" data-number="30.9">
+<h2 data-number="30.9" class="anchored" data-anchor-id="平台需要提供什么"><span class="header-section-number">30.9</span> 平台需要提供什么</h2>
+<p>FSDP/ZeRO 对平台的要求比 DDP 更高：</p>
+<ul>
+<li>更稳定的高速互联，因为通信更频繁。</li>
+<li>更明确的拓扑放置，避免把强通信 shard 放到弱链路上。</li>
+<li>更可靠的 checkpoint 存储，支持大量分片并发读写。</li>
+<li>更细的失败定位，能知道是哪个 rank、哪个 shard、哪次 collective 出错。</li>
+<li>更清晰的恢复策略，明确是否允许改变 world size。</li>
+<li>更完整的资源描述，除了 GPU，还要考虑 CPU memory、本地 NVMe、网络。</li>
+</ul>
+<p>这也是 AI 平台工程和普通批任务平台的差异：任务不是“跑完一个容器”这么简单，而是在维护一个分布式训练状态机。</p>
+</section>
+<section id="本章小结" class="level2" data-number="30.10">
+<h2 data-number="30.10" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">30.10</span> 本章小结</h2>
+<p>FSDP 和 ZeRO 的一句话本质是：<strong>把训练状态切成 shard，用通信换显存。</strong> 它们适合模型或 optimizer state 太大、DDP 单卡放不下的场景。选型时要始终问：省下的显存是否值得新增的 AllGather、ReduceScatter、checkpoint 和拓扑复杂度。</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
+<div id="ref-pytorch-fsdp" class="csl-entry" role="listitem">
+<span>《Getting Started with Fully Sharded Data Parallel》</span>. 不详. <a href="https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html" class="uri">https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html</a>.
+</div>
+<div id="ref-deepspeed-zero" class="csl-entry" role="listitem">
+<span>《ZeRO: Zero Redundancy Optimizer》</span>. 不详. <a href="https://www.deepspeed.ai/tutorials/zero/" class="uri">https://www.deepspeed.ai/tutorials/zero/</a>.
 </div>
 </div>
 </section>
@@ -1150,13 +1239,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/29-data-parallel-ddp.html" class="pagination-link" aria-label="Data Parallel 与 DDP">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/31-tensor-parallel.html" class="pagination-link" aria-label="Tensor Parallel">
+        <span class="nav-page-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

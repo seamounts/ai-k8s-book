@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>33&nbsp; 分布式推理 – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -50,8 +50,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p5/34-straggler-fault.html" rel="next">
+<link href="../../ch/p5/32-pipeline-parallel.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +104,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/33-distributed-inference.html"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +223,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -394,7 +394,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/33-distributed-inference.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/33-distributed-inference.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span></a>
   </div>
 </li>
@@ -541,22 +541,25 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">33.1</span> 本章要回答的问题</a></li>
+  <li><a href="#推理扩展的三条路线" id="toc-推理扩展的三条路线" class="nav-link" data-scroll-target="#推理扩展的三条路线"><span class="header-section-number">33.2</span> 推理扩展的三条路线</a></li>
+  <li><a href="#多副本最直观但不总够" id="toc-多副本最直观但不总够" class="nav-link" data-scroll-target="#多副本最直观但不总够"><span class="header-section-number">33.3</span> 多副本：最直观，但不总够</a></li>
+  <li><a href="#模型并行一个副本跨多张-gpu" id="toc-模型并行一个副本跨多张-gpu" class="nav-link" data-scroll-target="#模型并行一个副本跨多张-gpu"><span class="header-section-number">33.4</span> 模型并行：一个副本跨多张 GPU</a></li>
+  <li><a href="#prefilldecode-分离" id="toc-prefilldecode-分离" class="nav-link" data-scroll-target="#prefilldecode-分离"><span class="header-section-number">33.5</span> prefill/decode 分离</a></li>
+  <li><a href="#kv-cache-让路由变成状态问题" id="toc-kv-cache-让路由变成状态问题" class="nav-link" data-scroll-target="#kv-cache-让路由变成状态问题"><span class="header-section-number">33.6</span> KV Cache 让路由变成状态问题</a></li>
+  <li><a href="#sla-约束下的分布式推理" id="toc-sla-约束下的分布式推理" class="nav-link" data-scroll-target="#sla-约束下的分布式推理"><span class="header-section-number">33.7</span> SLA 约束下的分布式推理</a></li>
+  <li><a href="#一个容量规划例子" id="toc-一个容量规划例子" class="nav-link" data-scroll-target="#一个容量规划例子"><span class="header-section-number">33.8</span> 一个容量规划例子</a></li>
+  <li><a href="#平台需要提供什么" id="toc-平台需要提供什么" class="nav-link" data-scroll-target="#平台需要提供什么"><span class="header-section-number">33.9</span> 平台需要提供什么</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">33.10</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/33-distributed-inference.html"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></h1>
 </div>
 
 
@@ -573,176 +576,292 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="33.1">
+<h2 data-number="33.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">33.1</span> 本章要回答的问题</h2>
+<p>训练分布式围绕 global step；推理分布式围绕在线请求。它们都用 GPU 和通信，但目标不同。</p>
+<p>训练关心的是 step time、吞吐、收敛和 checkpoint；推理关心的是 TTFT、TPOT、P95/P99、吞吐、可用性、成本和用户体感。LLM 推理还要管理 KV Cache、continuous batching、长上下文和流式返回。</p>
+<p>vLLM 的 <code>serve</code> CLI 和 ParallelConfig 提供了 tensor parallel、pipeline parallel、data parallel 等多 GPU 服务相关配置 <span class="citation" data-cites="vllm-distributed-serving">(<a href="#ref-vllm-distributed-serving" role="doc-biblioref"><span>《vLLM Serve CLI and Parallel Configuration》</span>, 不详</a>)</span>。同时，vLLM 也有 disaggregated prefill 示例，把 prefill 和 decode 作为可拆分阶段来组织 <span class="citation" data-cites="vllm-disaggregated-prefill">(<a href="#ref-vllm-disaggregated-prefill" role="doc-biblioref"><span>《vLLM Disaggregated Prefill Example》</span>, 不详</a>)</span>。本章从系统本质解释这些策略。</p>
+<section class="visual-panel dist-infer-panel" aria-labelledby="dist-infer-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">Serving Architecture</p>
+      <h3 class="visual-panel__title anchored" id="dist-infer-title">分布式推理：路由必须看请求、模型切分和 KV Cache</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创架构图；概念依据 vLLM ParallelConfig 与 disaggregated prefill。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
-      </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
-      </div>
+  <div class="dist-infer">
+    <div class="dist-infer__client">
+      <strong>Requests</strong>
+      <span>短问答、长上下文、离线批量</span>
+    </div>
+    <div class="dist-infer__router">
+      <strong>Gateway / Router</strong>
+      <span>按 SLA、队列、KV Cache 水位、TP group 拓扑决策</span>
+      <i class="dist-infer__dot dist-infer__dot--one"></i>
+      <i class="dist-infer__dot dist-infer__dot--two"></i>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="dist-infer__lane dist-infer__lane--replica">
+      <strong>Replica Pool</strong>
+      <span>复制模型副本，扩展总吞吐</span>
+      <div class="dist-infer__chips"><em>R0</em><em>R1</em><em>R2</em></div>
+    </div>
+
+    <div class="dist-infer__lane dist-infer__lane--tp">
+      <strong>TP Group</strong>
+      <span>一个模型副本跨多张 GPU</span>
+      <div class="dist-infer__chips"><em>GPU0</em><em>GPU1</em><em>GPU2</em><em>GPU3</em></div>
+    </div>
+
+    <div class="dist-infer__lane dist-infer__lane--pd">
+      <strong>Prefill / Decode</strong>
+      <span>长 prompt 和逐 token 生成拆成不同阶段</span>
+      <div class="dist-infer__chips"><em>prefill</em><em>KV</em><em>decode</em></div>
+    </div>
+
+    <div class="dist-infer__state">
+      <strong>State</strong>
+      <span>KV Cache、prefix cache、active sequences、model version</span>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
+<section id="推理扩展的三条路线" class="level2" data-number="33.2">
+<h2 data-number="33.2" class="anchored" data-anchor-id="推理扩展的三条路线"><span class="header-section-number">33.2</span> 推理扩展的三条路线</h2>
+<p>分布式推理先分清三件事。</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
+<th>路线</th>
+<th>切的对象</th>
+<th>适合解决</th>
+<th>主要难点</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
+<td>多副本</td>
+<td>请求流量</td>
+<td>总 QPS 不够、需要高可用</td>
+<td>路由、冷启动、版本一致性、负载均衡</td>
 </tr>
 <tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
+<td>模型并行</td>
+<td>单个模型副本</td>
+<td>模型太大、单副本太慢</td>
+<td>TP/PP 通信、拓扑、成组调度</td>
 </tr>
 <tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
+<td>阶段拆分</td>
+<td>prefill/decode 或 embedding/rerank/generate</td>
+<td>不同阶段资源形态不同</td>
+<td>KV Cache 传递、队列协调、SLA 拆解</td>
 </tr>
 </tbody>
 </table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
+<p>多副本像开多个服务窗口；模型并行像多个人一起服务同一个窗口；阶段拆分像把“接单、加工、出货”拆成不同工位。三者可以组合，但不能混为一谈。</p>
 </section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="多副本最直观但不总够" class="level2" data-number="33.3">
+<h2 data-number="33.3" class="anchored" data-anchor-id="多副本最直观但不总够"><span class="header-section-number">33.3</span> 多副本：最直观，但不总够</h2>
+<p>最简单的扩展是多跑几个模型副本：</p>
+<pre class="text"><code>Gateway -&gt; Replica A
+        -&gt; Replica B
+        -&gt; Replica C</code></pre>
+<p>它适合模型单副本能放下、单副本延迟可接受、只是总流量不够的场景。平台可以用常规服务治理能力做负载均衡、健康检查、灰度和回滚。</p>
+<p>但 LLM 推理里，多副本会遇到新的约束：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
+<li>每个副本都要加载一份 weights，显存成本高。</li>
+<li>长上下文请求会占用大量 KV Cache。</li>
+<li>continuous batching 让副本内部排队状态变得重要。</li>
+<li>冷启动要下载和加载大模型，扩容不是秒级完成。</li>
+<li>路由如果不看队列和 KV Cache，只看连接数，可能负载不均。</li>
 </ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
+<p>所以推理副本不是普通 Web 服务副本。它的容量由 weights、KV Cache、batch 策略和请求形态共同决定。</p>
 </section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
-</tr>
-<tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
-</tr>
-<tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
-</tr>
-</tbody>
-</table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
-</section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
-</tr>
-<tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
-</tr>
-<tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
-</tr>
-<tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
-</tr>
-</tbody>
-</table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
-</section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
+<section id="模型并行一个副本跨多张-gpu" class="level2" data-number="33.4">
+<h2 data-number="33.4" class="anchored" data-anchor-id="模型并行一个副本跨多张-gpu"><span class="header-section-number">33.4</span> 模型并行：一个副本跨多张 GPU</h2>
+<p>当单张 GPU 放不下模型，或者单副本 decode 太慢，可以用 Tensor Parallel 或 Pipeline Parallel 把一个模型实例切到多张 GPU。</p>
+<p>推理 TP 的特点：</p>
 <ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li>多张 GPU 共同承载一个模型副本。</li>
+<li>每次 token decode 都可能发生层内通信。</li>
+<li>GPU 必须成组调度，少一张就不是完整副本。</li>
+<li>拓扑会直接影响 TPOT。</li>
 </ul>
+<p>推理 PP 的特点：</p>
+<ul>
+<li>不同层放到不同 stage。</li>
+<li>activation 在 stage 之间流动。</li>
+<li>对超大模型或离线批推理有价值。</li>
+<li>在线低延迟场景要谨慎处理 pipeline bubble 和串行依赖。</li>
+</ul>
+<p>一句话区分：<strong>多副本扩的是服务窗口数量；TP/PP 扩的是一个窗口背后的协同能力。</strong></p>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="prefilldecode-分离" class="level2" data-number="33.5">
+<h2 data-number="33.5" class="anchored" data-anchor-id="prefilldecode-分离"><span class="header-section-number">33.5</span> prefill/decode 分离</h2>
+<p>LLM 请求有两个阶段：</p>
+<ul>
+<li><strong>prefill</strong>：把 prompt 一次性处理完，建立初始 KV Cache。长 prompt 时计算量大，更像大块矩阵计算。</li>
+<li><strong>decode</strong>：逐 token 生成，每一步读取历史 KV Cache，追加新 token。它更像小步循环，容易受 KV Cache 访问和 batch 形态影响。</li>
+</ul>
+<p>前面第三篇已经讲过 prefill 和 decode 的区别。本章把它放到分布式推理里看：两者资源形态不同，就可能拆到不同 GPU 池或不同服务层。</p>
+<p>prefill/decode 分离的收益可能包括：</p>
+<ul>
+<li>长 prompt 不阻塞短 decode。</li>
+<li>prefill worker 针对大块计算优化。</li>
+<li>decode worker 针对低延迟和 KV Cache 访问优化。</li>
+<li>不同阶段独立扩缩容。</li>
+</ul>
+<p>但它的代价也很明确：</p>
+<ul>
+<li>KV Cache 或中间状态需要跨阶段传递。</li>
+<li>路由必须知道请求处于哪个阶段。</li>
+<li>队列策略变成多段队列。</li>
+<li>故障时要处理半完成请求。</li>
+</ul>
+<p>这不是“把服务拆两个 Deployment”那么简单，而是把一次请求的生命周期拆成多个状态转移。</p>
+</section>
+<section id="kv-cache-让路由变成状态问题" class="level2" data-number="33.6">
+<h2 data-number="33.6" class="anchored" data-anchor-id="kv-cache-让路由变成状态问题"><span class="header-section-number">33.6</span> KV Cache 让路由变成状态问题</h2>
+<p>普通 HTTP 服务的路由通常可以无状态：请求来，分给任意健康副本。LLM 推理不总是这样。</p>
+<p>如果一个请求已经在某个副本上生成了 KV Cache，后续 decode 最好继续在能访问这份 KV Cache 的位置执行。否则要么重算 prompt，要么迁移 cache。vLLM 的 PagedAttention 和 Prefix Caching 都是在围绕 KV Cache 做更细粒度的显存管理和复用 <span class="citation" data-cites="vllm-paged-attention vllm-prefix-caching">(<a href="#ref-vllm-paged-attention" role="doc-biblioref"><span>《vLLM Paged Attention》</span>, 不详</a>; <a href="#ref-vllm-prefix-caching" role="doc-biblioref"><span>《vLLM Automatic Prefix Caching》</span>, 不详</a>)</span>。</p>
+<p>因此分布式推理的路由要考虑：</p>
+<ul>
+<li>模型版本和 adapter。</li>
+<li>当前副本的队列长度。</li>
+<li>副本的 KV Cache 水位。</li>
+<li>请求上下文长度和 max tokens。</li>
+<li>是否命中 prefix cache。</li>
+<li>租户优先级和 SLA。</li>
+</ul>
+<p>路由如果只看 QPS 或连接数，就看不到真正的瓶颈。</p>
+</section>
+<section id="sla-约束下的分布式推理" class="level2" data-number="33.7">
+<h2 data-number="33.7" class="anchored" data-anchor-id="sla-约束下的分布式推理"><span class="header-section-number">33.7</span> SLA 约束下的分布式推理</h2>
+<p>推理扩展必须用指标约束，不然容易只优化吞吐。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>说明</th>
+<th>分布式影响</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>TTFT</td>
+<td>请求到首 token 的时间</td>
+<td>路由、排队、tokenizer、prefill、跨阶段传递</td>
+</tr>
+<tr class="even">
+<td>TPOT</td>
+<td>后续每 token 平均时间</td>
+<td>decode batch、TP 通信、KV Cache 访问</td>
+</tr>
+<tr class="odd">
+<td>P95/P99</td>
+<td>长尾延迟</td>
+<td>长请求、慢副本、队列策略、故障重试</td>
+</tr>
+<tr class="even">
+<td>tokens/sec</td>
+<td>总生成吞吐</td>
+<td>batching、GPU 利用率、模型并行</td>
+</tr>
+<tr class="odd">
+<td>cache hit rate</td>
+<td>prefix 或 KV 复用命中率</td>
+<td>路由和 prompt 结构</td>
+</tr>
+<tr class="even">
+<td>eviction / OOM</td>
+<td>KV Cache 容量压力</td>
+<td>batch、上下文长度、并发</td>
+</tr>
+</tbody>
+</table>
+<p>推理平台最重要的设计原则是：<strong>吞吐优化必须受延迟目标约束。</strong> 为了 tokens/sec 把 batch 做大，却让 TTFT 和 P99 崩掉，是错误优化。</p>
+</section>
+<section id="一个容量规划例子" class="level2" data-number="33.8">
+<h2 data-number="33.8" class="anchored" data-anchor-id="一个容量规划例子"><span class="header-section-number">33.8</span> 一个容量规划例子</h2>
+<p>假设一个 70B LLM 服务有三类请求：</p>
+<ul>
+<li>交互式短 prompt，要求 TTFT 低。</li>
+<li>长文档总结，prompt 很长。</li>
+<li>离线批量生成，对延迟不敏感。</li>
+</ul>
+<p>一种合理的分布式推理架构可能是：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>请求类型</th>
+<th>推荐策略</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>交互式短 prompt</td>
+<td>独立低延迟副本池，较小 queue delay，限制 max tokens</td>
+</tr>
+<tr class="even">
+<td>长文档总结</td>
+<td>prefill 能力更强的副本池，按上下文长度分桶</td>
+</tr>
+<tr class="odd">
+<td>离线批量生成</td>
+<td>大 batch 或离线队列，优先吞吐</td>
+</tr>
+</tbody>
+</table>
+<p>如果三类请求混在一个队列里，长 prompt 会拖慢短请求，离线批任务会挤占交互式 SLA。这不是模型问题，而是服务调度问题。</p>
+</section>
+<section id="平台需要提供什么" class="level2" data-number="33.9">
+<h2 data-number="33.9" class="anchored" data-anchor-id="平台需要提供什么"><span class="header-section-number">33.9</span> 平台需要提供什么</h2>
+<p>分布式推理平台要表达的不只是 Deployment 副本数：</p>
+<ul>
+<li>模型副本的 GPU group，例如 TP size。</li>
+<li>模型版本、tokenizer、template、adapter 的一致性。</li>
+<li>KV Cache 资源水位。</li>
+<li>请求队列、优先级、取消和超时。</li>
+<li>prefill/decode 阶段拓扑。</li>
+<li>冷启动、warmup 和模型加载进度。</li>
+<li>SLA 指标和自动扩缩容信号。</li>
+</ul>
+<p>后面进入 KServe、vLLM、Ray Serve 和 Kubernetes 推理架构时，会把这些能力落到具体组件上。</p>
+</section>
+<section id="本章小结" class="level2" data-number="33.10">
+<h2 data-number="33.10" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">33.10</span> 本章小结</h2>
+<p>分布式推理的本质是：<strong>在 SLA 约束下，把请求、模型副本、KV Cache 和计算阶段组织起来。</strong> 多副本解决总吞吐，TP/PP 解决单副本容量和速度，prefill/decode 分离解决不同阶段资源形态差异。推理系统不能只看 Pod 存活，要看请求生命周期和显存状态。</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
+<div id="ref-vllm-prefix-caching" class="csl-entry" role="listitem">
+<span>《vLLM Automatic Prefix Caching》</span>. 不详. <a href="https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/" class="uri">https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/</a>.
+</div>
+<div id="ref-vllm-disaggregated-prefill" class="csl-entry" role="listitem">
+<span>《vLLM Disaggregated Prefill Example》</span>. 不详. <a href="https://docs.vllm.ai/en/latest/examples/disaggregated/disaggregated_prefill/" class="uri">https://docs.vllm.ai/en/latest/examples/disaggregated/disaggregated_prefill/</a>.
+</div>
+<div id="ref-vllm-paged-attention" class="csl-entry" role="listitem">
+<span>《vLLM Paged Attention》</span>. 不详. <a href="https://docs.vllm.ai/en/latest/design/paged_attention/" class="uri">https://docs.vllm.ai/en/latest/design/paged_attention/</a>.
+</div>
+<div id="ref-vllm-distributed-serving" class="csl-entry" role="listitem">
+<span>《vLLM Serve CLI and Parallel Configuration》</span>. 不详. <a href="https://docs.vllm.ai/en/latest/cli/serve/" class="uri">https://docs.vllm.ai/en/latest/cli/serve/</a>.
 </div>
 </div>
 </section>
@@ -1150,13 +1269,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/32-pipeline-parallel.html" class="pagination-link" aria-label="Pipeline Parallel">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/34-straggler-fault.html" class="pagination-link" aria-label="慢节点、故障与恢复">
+        <span class="nav-page-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

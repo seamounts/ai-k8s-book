@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>31&nbsp; Tensor Parallel – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -50,8 +50,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p5/32-pipeline-parallel.html" rel="next">
+<link href="../../ch/p5/30-fsdp-zero.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +104,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/31-tensor-parallel.html"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +223,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -382,7 +382,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/31-tensor-parallel.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/31-tensor-parallel.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span></a>
   </div>
 </li>
@@ -541,22 +541,24 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">31.1</span> 本章要回答的问题</a></li>
+  <li><a href="#为什么要切一层" id="toc-为什么要切一层" class="nav-link" data-scroll-target="#为什么要切一层"><span class="header-section-number">31.2</span> 为什么要切一层</a></li>
+  <li><a href="#列切行切和-head-切" id="toc-列切行切和-head-切" class="nav-link" data-scroll-target="#列切行切和-head-切"><span class="header-section-number">31.3</span> 列切、行切和 head 切</a></li>
+  <li><a href="#tp-为什么强依赖拓扑" id="toc-tp-为什么强依赖拓扑" class="nav-link" data-scroll-target="#tp-为什么强依赖拓扑"><span class="header-section-number">31.4</span> TP 为什么强依赖拓扑</a></li>
+  <li><a href="#tp-在训练和推理中的差异" id="toc-tp-在训练和推理中的差异" class="nav-link" data-scroll-target="#tp-在训练和推理中的差异"><span class="header-section-number">31.5</span> TP 在训练和推理中的差异</a></li>
+  <li><a href="#tp-和-fsdpzero-的区别" id="toc-tp-和-fsdpzero-的区别" class="nav-link" data-scroll-target="#tp-和-fsdpzero-的区别"><span class="header-section-number">31.6</span> TP 和 FSDP/ZeRO 的区别</a></li>
+  <li><a href="#一个放置案例" id="toc-一个放置案例" class="nav-link" data-scroll-target="#一个放置案例"><span class="header-section-number">31.7</span> 一个放置案例</a></li>
+  <li><a href="#平台需要表达-tp-组" id="toc-平台需要表达-tp-组" class="nav-link" data-scroll-target="#平台需要表达-tp-组"><span class="header-section-number">31.8</span> 平台需要表达 TP 组</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">31.9</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/31-tensor-parallel.html"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></h1>
 </div>
 
 
@@ -573,176 +575,246 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="31.1">
+<h2 data-number="31.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">31.1</span> 本章要回答的问题</h2>
+<p>Data Parallel 是切数据，FSDP/ZeRO 是切训练状态。Tensor Parallel, 简称 TP, 切的是更细的东西：<strong>一层里面的 tensor 计算。</strong></p>
+<p>当模型的一层太大，或者单个模型副本推理太慢时，可以把同一层的矩阵乘、attention head 或 MLP 计算切到多张 GPU 上。PyTorch Tensor Parallel 文档把 TP 描述为在模型层内部切分模块或参数的并行方式 <span class="citation" data-cites="pytorch-tensor-parallel">(<a href="#ref-pytorch-tensor-parallel" role="doc-biblioref"><span>《Tensor Parallelism》</span>, 不详</a>)</span>。Megatron-LM 则是大模型张量并行和模型并行的重要代表工作 <span class="citation" data-cites="megatron-lm">(<a href="#ref-megatron-lm" role="doc-biblioref">Shoeybi 等 2019</a>)</span>。</p>
+<section class="visual-panel tp-matrix-panel" aria-labelledby="tp-matrix-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">Matrix Split</p>
+      <h3 class="visual-panel__title anchored" id="tp-matrix-title">Tensor Parallel：切的是一层里的矩阵，不是切请求</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创矩阵图；概念依据 PyTorch Tensor Parallel 与 Megatron-LM。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
-      </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
-      </div>
+  <div class="tp-matrix">
+    <div class="tp-matrix__input">
+      <strong>X</strong>
+      <span>batch x hidden</span>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="tp-matrix__op">x</div>
+
+    <div class="tp-weight" aria-label="weight matrix split by columns">
+      <div class="tp-weight__slice tp-weight__slice--a"><strong>W0</strong><span>GPU 0</span></div>
+      <div class="tp-weight__slice tp-weight__slice--b"><strong>W1</strong><span>GPU 1</span></div>
+      <div class="tp-weight__slice tp-weight__slice--c"><strong>W2</strong><span>GPU 2</span></div>
+    </div>
+
+    <div class="tp-matrix__op">=</div>
+
+    <div class="tp-output">
+      <div><strong>Y0</strong><span>局部输出</span></div>
+      <div><strong>Y1</strong><span>局部输出</span></div>
+      <div><strong>Y2</strong><span>局部输出</span></div>
+    </div>
+
+    <div class="tp-comm">
+      <strong>通信边界</strong>
+      <span>AllGather 或 AllReduce 把局部结果拼成下一层需要的形状</span>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
+<section id="为什么要切一层" class="level2" data-number="31.2">
+<h2 data-number="31.2" class="anchored" data-anchor-id="为什么要切一层"><span class="header-section-number">31.2</span> 为什么要切一层</h2>
+<p>Transformer 里每一层都有 attention 和 MLP，大量计算可以归结为矩阵乘。模型越大，单层 weight matrix 越大，hidden size 越大，attention head 越多。</p>
+<p>如果一层的 weights 或中间结果单卡放不下，或者单卡处理这一层太慢，就需要把层内计算拆开。TP 的直觉是：</p>
+<pre class="text"><code>一个大矩阵乘：
+  X @ W
+
+切成多个局部矩阵乘：
+  GPU 0: X @ W0
+  GPU 1: X @ W1
+  GPU 2: X @ W2
+
+再通过通信得到完整输出。</code></pre>
+<p>这和 DDP 完全不同。DDP 中每个 rank 都有完整层，处理不同数据；TP 中多个 rank 合作计算同一层，通常处理同一批数据的不同 tensor 分片。</p>
+</section>
+<section id="列切行切和-head-切" class="level2" data-number="31.3">
+<h2 data-number="31.3" class="anchored" data-anchor-id="列切行切和-head-切"><span class="header-section-number">31.3</span> 列切、行切和 head 切</h2>
+<p>TP 常见切法包括：</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
+<th>切法</th>
+<th>直觉</th>
+<th>通信特点</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
+<td>Column Parallel</td>
+<td>按输出维度切 weight matrix</td>
+<td>每张卡产生一部分输出，后面可能需要 AllGather</td>
 </tr>
 <tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
+<td>Row Parallel</td>
+<td>按输入维度切 weight matrix</td>
+<td>每张卡产生局部和，通常需要 AllReduce</td>
 </tr>
 <tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
+<td>Attention Head Parallel</td>
+<td>不同 GPU 负责不同 attention head</td>
+<td>head 之间相对独立，但后续投影可能通信</td>
 </tr>
 </tbody>
 </table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
+<p>不用一开始记公式，先抓住本质：TP 把一层拆成多个局部算子，局部结果必须在某些边界上重新合并。合并就是通信。</p>
 </section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="tp-为什么强依赖拓扑" class="level2" data-number="31.4">
+<h2 data-number="31.4" class="anchored" data-anchor-id="tp-为什么强依赖拓扑"><span class="header-section-number">31.4</span> TP 为什么强依赖拓扑</h2>
+<p>TP 的通信发生在层内部。Transformer 有很多层，每层 forward 和 backward 都可能通信。和 DDP 相比，TP 的通信频率更高。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>策略</th>
+<th>通信发生位置</th>
+<th>拓扑敏感度</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DDP</td>
+<td>backward gradients 同步，通常每个 step 多次 bucket 通信</td>
+<td>中到高</td>
+</tr>
+<tr class="even">
+<td>FSDP/ZeRO</td>
+<td>module 前后聚合和切分状态</td>
+<td>高</td>
+</tr>
+<tr class="odd">
+<td>Tensor Parallel</td>
+<td>层内矩阵计算边界</td>
+<td>很高</td>
+</tr>
+</tbody>
+</table>
+<p>这就是为什么 TP 通常优先放在同一节点的 NVLink/NVSwitch 内。跨节点做 TP 不是绝对不能做，但如果链路慢，层内通信会反复惩罚每个 token、每个 step。</p>
+</section>
+<section id="tp-在训练和推理中的差异" class="level2" data-number="31.5">
+<h2 data-number="31.5" class="anchored" data-anchor-id="tp-在训练和推理中的差异"><span class="header-section-number">31.5</span> TP 在训练和推理中的差异</h2>
+<p>训练 TP 要处理 forward、backward、gradient 和 optimizer。它经常和 DDP、FSDP、Pipeline Parallel 组合，形成 2D/3D parallelism。</p>
+<p>推理 TP 更常见于大模型服务：单张 GPU 放不下完整模型，或者单副本 decode 太慢，就把一个模型实例切到多张 GPU。vLLM 的分布式 serving 支持 tensor parallel size 等配置，用于把模型部署到多 GPU 上 <span class="citation" data-cites="vllm-distributed-serving">(<a href="#ref-vllm-distributed-serving" role="doc-biblioref"><span>《vLLM Serve CLI and Parallel Configuration》</span>, 不详</a>)</span>。</p>
+<p>推理 TP 的关键不是只有吞吐，还包括：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
-</ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
-</section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
-</tr>
-<tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
-</tr>
-<tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
-</tr>
-</tbody>
-</table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
-</section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
-</tr>
-<tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
-</tr>
-<tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
-</tr>
-<tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
-</tr>
-</tbody>
-</table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
-</section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
-<ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li>首 token 延迟是否变差。</li>
+<li>TP 通信是否拉高每 token 时间。</li>
+<li>KV Cache 是否也要按 TP 组管理。</li>
+<li>单副本多卡占用是否降低了集群可调度性。</li>
 </ul>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="tp-和-fsdpzero-的区别" class="level2" data-number="31.6">
+<h2 data-number="31.6" class="anchored" data-anchor-id="tp-和-fsdpzero-的区别"><span class="header-section-number">31.6</span> TP 和 FSDP/ZeRO 的区别</h2>
+<p>二者都可能让大模型跑起来，但切法不同。</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>FSDP / ZeRO</th>
+<th>Tensor Parallel</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>切分对象</td>
+<td>训练状态 shard</td>
+<td>层内 tensor / parameter 维度</td>
+</tr>
+<tr class="even">
+<td>主要目标</td>
+<td>降低训练状态显存</td>
+<td>让单层计算和模型副本跨多卡</td>
+</tr>
+<tr class="odd">
+<td>通信位置</td>
+<td>module 边界、状态聚合和切分</td>
+<td>层内部，频率更高</td>
+</tr>
+<tr class="even">
+<td>推理是否常用</td>
+<td>FSDP 主要用于训练</td>
+<td>TP 是大模型推理常用手段</td>
+</tr>
+<tr class="odd">
+<td>拓扑要求</td>
+<td>高</td>
+<td>很高</td>
+</tr>
+</tbody>
+</table>
+<p>简单说：FSDP/ZeRO 更像“账本分片”，TP 更像“同一台机器的多个车间同时加工一个零件”。</p>
+</section>
+<section id="一个放置案例" class="level2" data-number="31.7">
+<h2 data-number="31.7" class="anchored" data-anchor-id="一个放置案例"><span class="header-section-number">31.7</span> 一个放置案例</h2>
+<p>假设一个 LLM 推理服务需要 <code>tensor_parallel_size=8</code>。你有两种放置方式：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>放置方式</th>
+<th>看起来</th>
+<th>实际影响</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>单机 8 卡，NVSwitch</td>
+<td>8 张 GPU 都在同一高速互联域</td>
+<td>TP 通信路径短，适合层内通信</td>
+</tr>
+<tr class="even">
+<td>4 台机器各 2 卡</td>
+<td>也是 8 张 GPU</td>
+<td>层内通信跨节点，decode 每步都可能被网络拖慢</td>
+</tr>
+</tbody>
+</table>
+<p>对调度器来说，这两种都满足“8 张 GPU”。对 TP 来说，它们完全不是同一种资源。TP 把拓扑从硬件细节变成了应用正确性和性能要求。</p>
+</section>
+<section id="平台需要表达-tp-组" class="level2" data-number="31.8">
+<h2 data-number="31.8" class="anchored" data-anchor-id="平台需要表达-tp-组"><span class="header-section-number">31.8</span> 平台需要表达 TP 组</h2>
+<p>TP 不是随便挑几张空 GPU。平台需要知道：</p>
+<ul>
+<li>哪些 GPU 属于同一个 TP group。</li>
+<li>TP group 内 GPU 是否有高速互联。</li>
+<li>TP group 是否跨 NUMA 或跨节点。</li>
+<li>推理副本是否需要独占整组 GPU。</li>
+<li>扩缩容时是否保持完整 TP group。</li>
+<li>监控指标是否按 group 聚合，而不是只看单卡。</li>
+</ul>
+<p>这为后面 Kubernetes 调度打下基础：GPU 资源不能只用整数表达，还要表达拓扑和成组约束。</p>
+</section>
+<section id="本章小结" class="level2" data-number="31.9">
+<h2 data-number="31.9" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">31.9</span> 本章小结</h2>
+<p>Tensor Parallel 的一句话本质是：<strong>把同一层的 tensor 计算切给多张 GPU，用层内通信拼回结果。</strong> 它适合单层太大、单副本太慢或大模型推理需要多卡承载的场景。TP 的通信频率高，所以拓扑比 GPU 数量本身更重要。</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
+<div id="ref-megatron-lm" class="csl-entry" role="listitem">
+Shoeybi, Mohammad, Mostofa Patwary, Raul Puri, Patrick LeGresley, Jared Casper, 和 Bryan Catanzaro. 2019. <span>《Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism》</span>. <em>arXiv preprint arXiv:1909.08053</em>.
+</div>
+<div id="ref-pytorch-tensor-parallel" class="csl-entry" role="listitem">
+<span>《Tensor Parallelism》</span>. 不详. <a href="https://docs.pytorch.org/tutorials/intermediate/TP_tutorial.html" class="uri">https://docs.pytorch.org/tutorials/intermediate/TP_tutorial.html</a>.
+</div>
+<div id="ref-vllm-distributed-serving" class="csl-entry" role="listitem">
+<span>《vLLM Serve CLI and Parallel Configuration》</span>. 不详. <a href="https://docs.vllm.ai/en/latest/cli/serve/" class="uri">https://docs.vllm.ai/en/latest/cli/serve/</a>.
 </div>
 </div>
 </section>
@@ -1150,13 +1222,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/30-fsdp-zero.html" class="pagination-link" aria-label="FSDP 与 ZeRO">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/32-pipeline-parallel.html" class="pagination-link" aria-label="Pipeline Parallel">
+        <span class="nav-page-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

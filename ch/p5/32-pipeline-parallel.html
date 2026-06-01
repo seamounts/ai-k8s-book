@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>32&nbsp; Pipeline Parallel – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -50,8 +50,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p5/33-distributed-inference.html" rel="next">
+<link href="../../ch/p5/31-tensor-parallel.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +104,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/32-pipeline-parallel.html"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +223,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -388,7 +388,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/32-pipeline-parallel.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/32-pipeline-parallel.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span></a>
   </div>
 </li>
@@ -541,22 +541,26 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">32.1</span> 本章要回答的问题</a></li>
+  <li><a href="#pp-切的是什么" id="toc-pp-切的是什么" class="nav-link" data-scroll-target="#pp-切的是什么"><span class="header-section-number">32.2</span> PP 切的是什么</a></li>
+  <li><a href="#micro-batch-和-pipeline-bubble" id="toc-micro-batch-和-pipeline-bubble" class="nav-link" data-scroll-target="#micro-batch-和-pipeline-bubble"><span class="header-section-number">32.3</span> micro-batch 和 pipeline bubble</a></li>
+  <li><a href="#pp-的通信是什么" id="toc-pp-的通信是什么" class="nav-link" data-scroll-target="#pp-的通信是什么"><span class="header-section-number">32.4</span> PP 的通信是什么</a></li>
+  <li><a href="#stage-均衡比想象中重要" id="toc-stage-均衡比想象中重要" class="nav-link" data-scroll-target="#stage-均衡比想象中重要"><span class="header-section-number">32.5</span> stage 均衡比想象中重要</a></li>
+  <li><a href="#f1b-的直觉" id="toc-f1b-的直觉" class="nav-link" data-scroll-target="#f1b-的直觉"><span class="header-section-number">32.6</span> 1F1B 的直觉</a></li>
+  <li><a href="#pptpfsdp-可以组合" id="toc-pptpfsdp-可以组合" class="nav-link" data-scroll-target="#pptpfsdp-可以组合"><span class="header-section-number">32.7</span> PP、TP、FSDP 可以组合</a></li>
+  <li><a href="#推理中是否需要-pp" id="toc-推理中是否需要-pp" class="nav-link" data-scroll-target="#推理中是否需要-pp"><span class="header-section-number">32.8</span> 推理中是否需要 PP</a></li>
+  <li><a href="#平台需要表达-stage" id="toc-平台需要表达-stage" class="nav-link" data-scroll-target="#平台需要表达-stage"><span class="header-section-number">32.9</span> 平台需要表达 stage</a></li>
+  <li><a href="#一个排障案例" id="toc-一个排障案例" class="nav-link" data-scroll-target="#一个排障案例"><span class="header-section-number">32.10</span> 一个排障案例</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">32.11</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/32-pipeline-parallel.html"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></h1>
 </div>
 
 
@@ -573,176 +577,216 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="32.1">
+<h2 data-number="32.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">32.1</span> 本章要回答的问题</h2>
+<p>Pipeline Parallel, 简称 PP, 切的是模型层。它把一个深模型拆成多个 stage，每个 stage 放到不同 GPU 或节点上。输入先经过 stage 1，再传给 stage 2，最后到 stage N。</p>
+<p>PyTorch Pipeline Parallel 教程把 pipeline parallelism 用于把模型按层切分到多个设备，并通过 micro-batch 让多个 stage 尽量同时工作 <span class="citation" data-cites="pytorch-pipeline-parallel">(<a href="#ref-pytorch-pipeline-parallel" role="doc-biblioref"><span>《Getting Started with Distributed Pipeline Parallelism》</span>, 不详</a>)</span>。直觉上，它像一条生产流水线：前段加工完半成品，交给下一段继续加工。</p>
+<section class="visual-panel pp-timeline-panel" aria-labelledby="pp-timeline-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">Pipeline Timeline</p>
+      <h3 class="visual-panel__title anchored" id="pp-timeline-title">Pipeline Parallel：micro-batch 用来填满 stage 时间轴</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创时间轴图；概念依据 PyTorch Pipeline Parallel。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
-      </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
-      </div>
+  <div class="pp-timeline">
+    <div class="pp-timeline__grid" aria-label="pipeline micro-batch timeline">
+      <div class="pp-cell pp-head"></div>
+      <div class="pp-cell pp-head">t1</div>
+      <div class="pp-cell pp-head">t2</div>
+      <div class="pp-cell pp-head">t3</div>
+      <div class="pp-cell pp-head">t4</div>
+      <div class="pp-cell pp-head">t5</div>
+      <div class="pp-cell pp-head">t6</div>
+
+      <div class="pp-cell pp-stage">Stage 0</div>
+      <div class="pp-cell pp-mb pp-mb--a">MB1</div>
+      <div class="pp-cell pp-mb pp-mb--b">MB2</div>
+      <div class="pp-cell pp-mb pp-mb--c">MB3</div>
+      <div class="pp-cell pp-mb pp-mb--d">MB4</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+
+      <div class="pp-cell pp-stage">Stage 1</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+      <div class="pp-cell pp-mb pp-mb--a">MB1</div>
+      <div class="pp-cell pp-mb pp-mb--b">MB2</div>
+      <div class="pp-cell pp-mb pp-mb--c">MB3</div>
+      <div class="pp-cell pp-mb pp-mb--d">MB4</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+
+      <div class="pp-cell pp-stage">Stage 2</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+      <div class="pp-cell pp-bubble">bubble</div>
+      <div class="pp-cell pp-mb pp-mb--a">MB1</div>
+      <div class="pp-cell pp-mb pp-mb--b">MB2</div>
+      <div class="pp-cell pp-mb pp-mb--c">MB3</div>
+      <div class="pp-cell pp-mb pp-mb--d">MB4</div>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="pp-timeline__notes">
+      <div><strong>micro-batch</strong><span>把一个大 batch 切成小块，让 stage 可以重叠工作。</span></div>
+      <div><strong>bubble</strong><span>流水线头尾的空转。micro-batch 少，空泡占比就高。</span></div>
+      <div><strong>stage balance</strong><span>最慢 stage 决定整条流水线吞吐。</span></div>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
-</tr>
-<tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
-</tr>
-<tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
-</tr>
-</tbody>
-</table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
-</section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="pp-切的是什么" class="level2" data-number="32.2">
+<h2 data-number="32.2" class="anchored" data-anchor-id="pp-切的是什么"><span class="header-section-number">32.2</span> PP 切的是什么</h2>
+<p>一个 Transformer 有很多层。PP 把这些层分段：</p>
+<pre class="text"><code>Stage 0: Layer 0-7
+Stage 1: Layer 8-15
+Stage 2: Layer 16-23
+Stage 3: Layer 24-31</code></pre>
+<p>forward 时，stage 0 计算 activation，发给 stage 1；stage 1 继续计算，再发给 stage 2。backward 时，gradient 反方向传回去。</p>
+<p>PP 解决的是两个问题：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
-</ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
-</section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
-</tr>
-<tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
-</tr>
-<tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
-</tr>
-</tbody>
-</table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
-</section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
-</tr>
-<tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
-</tr>
-<tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
-</tr>
-<tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
-</tr>
-</tbody>
-</table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
-</section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
-<ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li>单卡放不下完整模型层。</li>
+<li>模型太深，希望让不同 layer stage 并行工作。</li>
 </ul>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="micro-batch-和-pipeline-bubble" class="level2" data-number="32.3">
+<h2 data-number="32.3" class="anchored" data-anchor-id="micro-batch-和-pipeline-bubble"><span class="header-section-number">32.3</span> micro-batch 和 pipeline bubble</h2>
+<p>如果只给流水线一个大 batch，stage 0 算完后 stage 1 才开始，其他 stage 大量时间都在等。为了让多个 stage 同时工作，需要把 batch 再切成多个 micro-batch。</p>
+<p>简化后可以这样看：</p>
+<pre class="text"><code>时间片 1: Stage 0 处理 MB1
+时间片 2: Stage 0 处理 MB2, Stage 1 处理 MB1
+时间片 3: Stage 0 处理 MB3, Stage 1 处理 MB2, Stage 2 处理 MB1</code></pre>
+<p>流水线刚开始和结束时，总有 stage 空着，这部分空闲叫 <strong>pipeline bubble</strong>。micro-batch 越少，bubble 占比越高；micro-batch 越多，调度更满，但 activation、通信和调度开销也可能增加。</p>
+</section>
+<section id="pp-的通信是什么" class="level2" data-number="32.4">
+<h2 data-number="32.4" class="anchored" data-anchor-id="pp-的通信是什么"><span class="header-section-number">32.4</span> PP 的通信是什么</h2>
+<p>PP 的通信不是 gradients AllReduce，也不是层内矩阵 AllGather。它主要传递：</p>
+<ul>
+<li>forward 方向的 activation。</li>
+<li>backward 方向的 activation gradient。</li>
+</ul>
+<p>这类通信发生在相邻 stage 之间。它不像 TP 那样每层内部频繁同步，但 stage 切分不好时，activation 传输也会成为瓶颈。</p>
+</section>
+<section id="stage-均衡比想象中重要" class="level2" data-number="32.5">
+<h2 data-number="32.5" class="anchored" data-anchor-id="stage-均衡比想象中重要"><span class="header-section-number">32.5</span> stage 均衡比想象中重要</h2>
+<p>PP 的吞吐由最慢 stage 决定。如果 stage 0 放了 4 层，stage 1 放了 12 层，stage 1 就会成为瓶颈。其他 stage 计算完后只能等它。</p>
+<p>stage 不均衡可能来自：</p>
+<ul>
+<li>层数不均。</li>
+<li>某些层更重，例如 attention 或 MLP 维度更大。</li>
+<li>某些 stage activation 更大，通信更慢。</li>
+<li>某些 GPU 型号、温度、功耗或网络路径不同。</li>
+<li>checkpoint 或 logging 集中在某个 stage。</li>
+</ul>
+<p>所以 PP 切分不是平均分层那么简单，而是要按计算、显存和通信一起切。</p>
+</section>
+<section id="f1b-的直觉" class="level2" data-number="32.6">
+<h2 data-number="32.6" class="anchored" data-anchor-id="f1b-的直觉"><span class="header-section-number">32.6</span> 1F1B 的直觉</h2>
+<p>训练 pipeline 常见调度会让一个 stage 交替执行 forward 和 backward，例如 1F1B, 即 one-forward-one-backward。它的目标是减少 activation 常驻时间，并让 stage 更持续地工作。</p>
+<p>不用一开始陷入调度细节。记住两个原则：</p>
+<ol type="1">
+<li>micro-batch 用来填流水线。</li>
+<li>调度策略用来减少等待和显存压力。</li>
+</ol>
+<p>如果 pipeline bubble 大，GPU 利用率低，可能不是 GPU 不够，而是 micro-batch、stage 切分和调度策略没有配好。</p>
+</section>
+<section id="pptpfsdp-可以组合" class="level2" data-number="32.7">
+<h2 data-number="32.7" class="anchored" data-anchor-id="pptpfsdp-可以组合"><span class="header-section-number">32.7</span> PP、TP、FSDP 可以组合</h2>
+<p>大模型训练常常不是只用一种并行策略：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>组合</th>
+<th>直觉</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PP + TP</td>
+<td>每个 stage 内再做 tensor parallel，承载更大的层</td>
+</tr>
+<tr class="even">
+<td>PP + DDP</td>
+<td>多条 pipeline 处理不同数据 shard，提高吞吐</td>
+</tr>
+<tr class="odd">
+<td>PP + FSDP</td>
+<td>stage 内训练状态再分片，降低显存</td>
+</tr>
+<tr class="even">
+<td>PP + activation checkpointing</td>
+<td>少存 activation，用重算换显存</td>
+</tr>
+</tbody>
+</table>
+<p>这就是所谓 3D parallelism 的来源：Data Parallel、Tensor Parallel、Pipeline Parallel 从不同维度切模型和数据。平台工程最终要能表达这些组关系，而不只是“申请 N 张 GPU”。</p>
+</section>
+<section id="推理中是否需要-pp" class="level2" data-number="32.8">
+<h2 data-number="32.8" class="anchored" data-anchor-id="推理中是否需要-pp"><span class="header-section-number">32.8</span> 推理中是否需要 PP</h2>
+<p>推理也可以使用 PP，尤其当模型层太多或单卡放不下时。但 LLM 在线推理有逐 token decode，pipeline stage 之间的串行依赖会影响 latency。对于低延迟交互式服务，TP 往往比 PP 更常见；对于超大模型或离线批推理，PP 仍然有价值。</p>
+<p>推理 PP 要特别关注：</p>
+<ul>
+<li>stage 间 activation 传输是否影响 TPOT。</li>
+<li>长短请求混在一起时，pipeline 是否被长请求拖住。</li>
+<li>prefill 和 decode 是否适合放在同一种 pipeline 策略下。</li>
+<li>stage 失败时，流式请求如何恢复或失败返回。</li>
+</ul>
+</section>
+<section id="平台需要表达-stage" class="level2" data-number="32.9">
+<h2 data-number="32.9" class="anchored" data-anchor-id="平台需要表达-stage"><span class="header-section-number">32.9</span> 平台需要表达 stage</h2>
+<p>PP 给平台带来的是 stage 语义：</p>
+<ul>
+<li>哪些 rank 属于同一条 pipeline。</li>
+<li>每个 stage 需要多少 GPU、显存、CPU 和网络。</li>
+<li>stage 间是否必须靠近放置。</li>
+<li>stage 不均衡时如何观测和告警。</li>
+<li>重启时是否整条 pipeline 一起重启。</li>
+<li>checkpoint 是否按 stage 和 shard 保存。</li>
+</ul>
+<p>如果平台只看到一堆 Pod，就很难知道哪个 Pod 是 stage 0，哪个是 stage 3，更难判断为什么整条 pipeline 吞吐低。</p>
+</section>
+<section id="一个排障案例" class="level2" data-number="32.10">
+<h2 data-number="32.10" class="anchored" data-anchor-id="一个排障案例"><span class="header-section-number">32.10</span> 一个排障案例</h2>
+<p>现象：4-stage PP 训练中，GPU 0 利用率高，GPU 1 和 GPU 2 中等，GPU 3 经常空等。</p>
+<p>可能原因：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>线索</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>stage 0 时间最长</td>
+<td>前几层或数据预处理集中在 stage 0</td>
+</tr>
+<tr class="even">
+<td>stage 3 等待多</td>
+<td>上游 activation 供给不稳定</td>
+</tr>
+<tr class="odd">
+<td>micro-batch 数少</td>
+<td>pipeline bubble 大</td>
+</tr>
+<tr class="even">
+<td>stage 之间网络慢</td>
+<td>activation 传输拖慢</td>
+</tr>
+<tr class="odd">
+<td>checkpoint 在最后 stage</td>
+<td>保存时最后 stage 阻塞</td>
+</tr>
+</tbody>
+</table>
+<p>排障思路不是“把 GPU 加倍”，而是拆 stage timeline，看每个 stage 的 compute、send、recv、wait 和 checkpoint 时间。</p>
+</section>
+<section id="本章小结" class="level2" data-number="32.11">
+<h2 data-number="32.11" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">32.11</span> 本章小结</h2>
+<p>Pipeline Parallel 的一句话本质是：<strong>把模型层切成 stage，用 micro-batch 填满流水线。</strong> 它适合模型太深、单卡放不下或需要多阶段协同计算的场景。PP 的关键问题是 bubble、stage 均衡、activation 通信和故障恢复。</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
+<div id="ref-pytorch-pipeline-parallel" class="csl-entry" role="listitem">
+<span>《Getting Started with Distributed Pipeline Parallelism》</span>. 不详. <a href="https://docs.pytorch.org/tutorials/intermediate/pipelining_tutorial.html" class="uri">https://docs.pytorch.org/tutorials/intermediate/pipelining_tutorial.html</a>.
 </div>
 </div>
 </section>
@@ -1150,13 +1194,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/31-tensor-parallel.html" class="pagination-link" aria-label="Tensor Parallel">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/33-distributed-inference.html" class="pagination-link" aria-label="分布式推理">
+        <span class="nav-page-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

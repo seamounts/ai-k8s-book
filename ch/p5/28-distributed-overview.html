@@ -20,7 +20,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -30,7 +50,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p6/35-platformization.html" rel="next">
+<link href="../../ch/p5/29-data-parallel-ddp.html" rel="next">
 <link href="../../ch/p4-gpu/27-inference-bottlenecks.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -348,6 +368,42 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/29-data-parallel-ddp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/30-fsdp-zero.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/31-tensor-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/32-pipeline-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/33-distributed-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/34-straggler-fault.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -362,7 +418,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p6/35-platformization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
   </div>
 </li>
       </ul>
@@ -379,7 +435,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/06-k8s.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
+ <span class="menu-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
   </div>
 </li>
       </ul>
@@ -396,7 +452,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p4/24-kubeflow-v1.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
+ <span class="menu-text"><span class="chapter-number">37</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
   </div>
 </li>
       </ul>
@@ -413,7 +469,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p7/50-llm-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
+ <span class="menu-text"><span class="chapter-number">38</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
   </div>
 </li>
       </ul>
@@ -430,7 +486,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/05-scheduling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
+ <span class="menu-text"><span class="chapter-number">39</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
   </div>
 </li>
       </ul>
@@ -447,7 +503,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p11/73-ray-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
+ <span class="menu-text"><span class="chapter-number">40</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
   </div>
 </li>
       </ul>
@@ -464,7 +520,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p12/81-platform-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
+ <span class="menu-text"><span class="chapter-number">41</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
   </div>
 </li>
       </ul>
@@ -485,9 +541,19 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本篇要回答的问题" id="toc-本篇要回答的问题" class="nav-link active" data-scroll-target="#本篇要回答的问题"><span class="header-section-number">28.1</span> 本篇要回答的问题</a></li>
-  <li><a href="#为什么需要分布式" id="toc-为什么需要分布式" class="nav-link" data-scroll-target="#为什么需要分布式"><span class="header-section-number">28.2</span> 为什么需要分布式</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">28.3</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">28.1</span> 本章要回答的问题</a></li>
+  <li><a href="#先统一几个词" id="toc-先统一几个词" class="nav-link" data-scroll-target="#先统一几个词"><span class="header-section-number">28.2</span> 先统一几个词</a></li>
+  <li><a href="#为什么分布式不会天然更快" id="toc-为什么分布式不会天然更快" class="nav-link" data-scroll-target="#为什么分布式不会天然更快"><span class="header-section-number">28.3</span> 为什么分布式不会天然更快</a></li>
+  <li><a href="#四种切分方式" id="toc-四种切分方式" class="nav-link" data-scroll-target="#四种切分方式"><span class="header-section-number">28.4</span> 四种切分方式</a></li>
+  <li><a href="#三类典型问题" id="toc-三类典型问题" class="nav-link" data-scroll-target="#三类典型问题"><span class="header-section-number">28.5</span> 三类典型问题</a>
+  <ul class="collapse">
+  <li><a href="#算得太慢" id="toc-算得太慢" class="nav-link" data-scroll-target="#算得太慢"><span class="header-section-number">28.5.1</span> 算得太慢</a></li>
+  <li><a href="#放不下" id="toc-放不下" class="nav-link" data-scroll-target="#放不下"><span class="header-section-number">28.5.2</span> 放不下</a></li>
+  <li><a href="#服务扛不住" id="toc-服务扛不住" class="nav-link" data-scroll-target="#服务扛不住"><span class="header-section-number">28.5.3</span> 服务扛不住</a></li>
+  </ul></li>
+  <li><a href="#平台视角分布式任务不是一组普通进程" id="toc-平台视角分布式任务不是一组普通进程" class="nav-link" data-scroll-target="#平台视角分布式任务不是一组普通进程"><span class="header-section-number">28.6</span> 平台视角：分布式任务不是一组普通进程</a></li>
+  <li><a href="#常见误区" id="toc-常见误区" class="nav-link" data-scroll-target="#常见误区"><span class="header-section-number">28.7</span> 常见误区</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">28.8</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
@@ -513,17 +579,67 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="本篇要回答的问题" class="level2" data-number="28.1">
-<h2 data-number="28.1" class="anchored" data-anchor-id="本篇要回答的问题"><span class="header-section-number">28.1</span> 本篇要回答的问题</h2>
-<p>前面已经完成单任务视角：训练如何更新 parameters，推理如何处理请求，GPU 如何执行 tensor 计算。现在进入分布式。</p>
+<section id="本章要回答的问题" class="level2" data-number="28.1">
+<h2 data-number="28.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">28.1</span> 本章要回答的问题</h2>
+<p>前四篇已经建立了单任务视角：训练如何读取数据、计算 loss、反向传播、更新 parameters；推理如何加载模型、处理请求、管理 KV Cache；GPU 如何通过 SM、HBM 和互联完成 tensor 计算。第五篇进入分布式。</p>
+<p>分布式 AI 不是“把程序复制到多张 GPU 上”。它真正解决的是三个问题：</p>
+<ul>
+<li><strong>算得太慢</strong>：单张 GPU 可以跑，但训练周期太长，或者推理吞吐不够。</li>
+<li><strong>放不下</strong>：模型 weights、activation、gradients、optimizer state 或 KV Cache 超过单卡显存。</li>
+<li><strong>服务扛不住</strong>：单个推理副本无法同时满足吞吐、延迟和长上下文需求。</li>
+</ul>
 <blockquote class="blockquote">
-<p>分布式 AI 的本质，不是“多用几张 GPU”，而是在计算、显存和通信之间重新切分任务。</p>
+<p>分布式 AI 的本质，是把计算、显存状态和请求负载切到多个执行单元上，再用通信把它们重新拼成一个正确结果。</p>
 </blockquote>
-<p>后续本篇会展开 Data Parallel、DDP、ZeRO、FSDP、Tensor Parallel、Pipeline Parallel、分布式推理和慢节点问题。本章先建立判断框架。</p>
+<p>PyTorch 分布式体系把多进程、多设备通信抽象为 process group、rank、collective 等概念 <span class="citation" data-cites="pytorch-distributed-overview">(<a href="#ref-pytorch-distributed-overview" role="doc-biblioref"><span>《PyTorch Distributed Overview》</span>, 不详</a>)</span>。NCCL 则提供 AllReduce、AllGather、ReduceScatter 等 GPU 集合通信能力 <span class="citation" data-cites="nvidia-nccl-user-guide">(<a href="#ref-nvidia-nccl-user-guide" role="doc-biblioref"><span>《NVIDIA NCCL User Guide》</span>, 不详</a>)</span>。本篇不会先堆 API，而是先建立判断框架：<strong>切了什么，通信什么，省了什么，代价是什么。</strong></p>
+<section class="visual-panel dist-map-panel" aria-labelledby="dist-map-title">
+  <div class="visual-panel__header">
+    <div>
+      <p class="visual-panel__eyebrow">Decision Map</p>
+      <h3 class="visual-panel__title anchored" id="dist-map-title">分布式 AI 不是多用 GPU，而是选择切分维度</h3>
+    </div>
+    <p class="visual-panel__note">依据 PyTorch Distributed、NCCL collective 和常见大模型并行策略重绘。</p>
+  </div>
+
+  <div class="dist-map">
+    <div class="dist-map__core">
+      <strong>先问瓶颈</strong>
+      <span>算得慢、放不下、扛不住，分别对应不同切分方式。</span>
+    </div>
+
+    <div class="dist-map__path dist-map__path--compute">
+      <span class="dist-map__badge">Compute</span>
+      <strong>切数据</strong>
+      <p>Data Parallel / DDP：每张 GPU 一份模型，处理不同 batch shard。</p>
+      <em>通信：gradients AllReduce</em>
+    </div>
+
+    <div class="dist-map__path dist-map__path--memory">
+      <span class="dist-map__badge">Memory</span>
+      <strong>切状态</strong>
+      <p>FSDP / ZeRO：parameters、gradients、optimizer state 按 rank 分片。</p>
+      <em>通信：AllGather / ReduceScatter</em>
+    </div>
+
+    <div class="dist-map__path dist-map__path--model">
+      <span class="dist-map__badge">Model</span>
+      <strong>切模型</strong>
+      <p>Tensor Parallel 切层内矩阵，Pipeline Parallel 切模型层。</p>
+      <em>通信：层内结果或 stage activation</em>
+    </div>
+
+    <div class="dist-map__path dist-map__path--serving">
+      <span class="dist-map__badge">Serving</span>
+      <strong>切请求与阶段</strong>
+      <p>多副本、TP group、prefill/decode 分离共同服务 SLA。</p>
+      <em>状态：KV Cache、队列、路由</em>
+    </div>
+  </div>
 </section>
-<section id="为什么需要分布式" class="level2" data-number="28.2">
-<h2 data-number="28.2" class="anchored" data-anchor-id="为什么需要分布式"><span class="header-section-number">28.2</span> 为什么需要分布式</h2>
-<p>常见原因有三类：</p>
+</section>
+<section id="先统一几个词" class="level2" data-number="28.2">
+<h2 data-number="28.2" class="anchored" data-anchor-id="先统一几个词"><span class="header-section-number">28.2</span> 先统一几个词</h2>
+<p>后面会持续使用这些术语，本书保持统一表达：</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -532,36 +648,285 @@ ul.task-list li input[type="checkbox"] {
 </colgroup>
 <thead>
 <tr class="header">
-<th>原因</th>
-<th>表现</th>
-<th>对应策略</th>
+<th>术语</th>
+<th>含义</th>
+<th>为什么重要</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>单卡算得太慢</td>
-<td>训练周期过长</td>
-<td>Data Parallel、DDP</td>
+<td>rank</td>
+<td>分布式任务里的一个工作进程编号</td>
+<td>日志、错误、通信、checkpoint 通常都按 rank 定位</td>
 </tr>
 <tr class="even">
-<td>单卡放不下</td>
-<td>weights、activation 或 optimizer state 太大</td>
-<td>ZeRO、FSDP、Tensor Parallel</td>
+<td>world size</td>
+<td>参与同一个分布式任务的总 rank 数</td>
+<td>决定 global batch、通信规模和同步等待范围</td>
 </tr>
 <tr class="odd">
-<td>推理并发或模型太大</td>
-<td>单副本容量不足</td>
-<td>多副本、模型切分、分布式推理</td>
+<td>replica</td>
+<td>完整模型副本</td>
+<td>Data Parallel / DDP 会在多张 GPU 上放多个 replica</td>
+</tr>
+<tr class="even">
+<td>shard</td>
+<td>被切开的状态片段</td>
+<td>FSDP / ZeRO 会把 parameters、gradients 或 optimizer state 切成 shard</td>
+</tr>
+<tr class="odd">
+<td>collective</td>
+<td>多个 rank 共同参与的通信操作</td>
+<td>AllReduce、AllGather、ReduceScatter 都是 collective</td>
+</tr>
+<tr class="even">
+<td>topology</td>
+<td>GPU、CPU、网卡和节点之间的连接结构</td>
+<td>同样 8 张 GPU，单机 NVSwitch 和跨节点以太网不是同一种资源</td>
 </tr>
 </tbody>
 </table>
-<p>分布式会带来额外通信，所以不是天然更快。真正的问题是：切分后节省的计算或显存，是否大于通信和同步成本。</p>
+<p>一个简单但非常有用的心智模型是：<strong>rank 是人，collective 是多人会议，topology 是他们之间的路。</strong> 人越多，不代表事情越快；会议越频繁，路越差，等待越多。</p>
 </section>
-<section id="本章小结" class="level2" data-number="28.3">
-<h2 data-number="28.3" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">28.3</span> 本章小结</h2>
-<p>第五篇会把前面的训练、推理和 GPU 知识连接到多 GPU、多节点系统。后面所有并行策略，都要用同一条标准判断：切了什么，通信什么，省了什么，代价是什么。</p>
+<section id="为什么分布式不会天然更快" class="level2" data-number="28.3">
+<h2 data-number="28.3" class="anchored" data-anchor-id="为什么分布式不会天然更快"><span class="header-section-number">28.3</span> 为什么分布式不会天然更快</h2>
+<p>单卡训练时，一个 step 大致是：</p>
+<pre class="text"><code>读数据 -&gt; forward -&gt; loss -&gt; backward -&gt; optimizer step -&gt; checkpoint/metrics</code></pre>
+<p>多卡后，每一步都可能多出通信和同步：</p>
+<pre class="text"><code>每个 rank 读不同数据
+每个 rank 做 forward/backward
+多个 rank 同步 gradients 或状态 shard
+每个 rank 更新或恢复自己的状态
+所有 rank 在关键点等待一致</code></pre>
+<p>如果一个模型在单卡上每个 step 用 500 ms，多卡后不是简单除以 GPU 数。假设计算减少到 80 ms，但通信、等待和数据抖动合计 70 ms，那么 8 卡 step time 可能是 150 ms，而不是 62.5 ms。分布式优化的核心就是让“省下的计算或显存”大于“新增的通信和同步”。</p>
+</section>
+<section id="四种切分方式" class="level2" data-number="28.4">
+<h2 data-number="28.4" class="anchored" data-anchor-id="四种切分方式"><span class="header-section-number">28.4</span> 四种切分方式</h2>
+<p>分布式 AI 常见策略可以按“切什么”来理解。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>切分方式</th>
+<th>切的对象</th>
+<th>典型技术</th>
+<th>解决的问题</th>
+<th>主要代价</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Data Parallel</td>
+<td>数据 batch</td>
+<td>Data Parallel、DDP</td>
+<td>算得慢，想缩短训练时间</td>
+<td>gradients 同步，慢 rank 拖慢整体</td>
+</tr>
+<tr class="even">
+<td>State Sharding</td>
+<td>训练状态</td>
+<td>ZeRO、FSDP</td>
+<td>optimizer state、gradients、parameters 占显存</td>
+<td>AllGather、ReduceScatter、checkpoint 更复杂</td>
+</tr>
+<tr class="odd">
+<td>Tensor Parallel</td>
+<td>单层 tensor 计算</td>
+<td>Tensor Parallel</td>
+<td>单层太大或推理单副本太慢</td>
+<td>层内通信频繁，强依赖高速互联</td>
+</tr>
+<tr class="even">
+<td>Pipeline Parallel</td>
+<td>模型层</td>
+<td>Pipeline Parallel</td>
+<td>模型太深、单卡放不下</td>
+<td>micro-batch、pipeline bubble、stage 均衡</td>
+</tr>
+<tr class="odd">
+<td>Service Parallel</td>
+<td>请求和服务副本</td>
+<td>多副本、prefill/decode 分离</td>
+<td>在线吞吐、延迟、长上下文</td>
+<td>路由、队列、KV Cache 状态管理</td>
+</tr>
+</tbody>
+</table>
+<p>这张表是本篇的主线。后面每章都会沿着同一个问题展开：</p>
+<ol type="1">
+<li>它切了什么？</li>
+<li>它为什么能省计算或显存？</li>
+<li>它需要通信什么？</li>
+<li>它在哪些场景有效？</li>
+<li>它会给平台和调度带来什么新要求？</li>
+</ol>
+</section>
+<section id="三类典型问题" class="level2" data-number="28.5">
+<h2 data-number="28.5" class="anchored" data-anchor-id="三类典型问题"><span class="header-section-number">28.5</span> 三类典型问题</h2>
+<section id="算得太慢" class="level3" data-number="28.5.1">
+<h3 data-number="28.5.1" class="anchored" data-anchor-id="算得太慢"><span class="header-section-number">28.5.1</span> 算得太慢</h3>
+<p>如果单卡能放下模型，但训练太慢，优先考虑 Data Parallel / DDP。它让每张 GPU 处理不同 mini-batch，然后同步 gradients。直觉上像多个人同时批改不同试卷，最后一起讨论“模型参数应该往哪个方向改”。</p>
+<p>这个策略最适合：</p>
+<ul>
+<li>模型可以完整放到每张 GPU。</li>
+<li>每个 step 的计算量足够大，能覆盖通信成本。</li>
+<li>数据读取能跟上多卡消耗。</li>
+<li>多个 rank 之间网络和拓扑稳定。</li>
+</ul>
+</section>
+<section id="放不下" class="level3" data-number="28.5.2">
+<h3 data-number="28.5.2" class="anchored" data-anchor-id="放不下"><span class="header-section-number">28.5.2</span> 放不下</h3>
+<p>如果单卡放不下，就要先判断放不下的是哪一类状态：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>显存对象</th>
+<th>主要出现场景</th>
+<th>常见解决方向</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>parameters</td>
+<td>训练和推理都需要</td>
+<td>FSDP、ZeRO-3、Tensor Parallel</td>
+</tr>
+<tr class="even">
+<td>gradients</td>
+<td>训练 backward 产生</td>
+<td>ZeRO-2/3、FSDP</td>
+</tr>
+<tr class="odd">
+<td>optimizer state</td>
+<td>训练更新 parameters 需要</td>
+<td>ZeRO-1/2/3、FSDP</td>
+</tr>
+<tr class="even">
+<td>activation</td>
+<td>训练 backward 需要中间结果</td>
+<td>activation checkpointing、Pipeline Parallel</td>
+</tr>
+<tr class="odd">
+<td>KV Cache</td>
+<td>LLM 推理保存上下文</td>
+<td>PagedAttention、KV Cache 管理、分布式推理</td>
+</tr>
+</tbody>
+</table>
+<p>这就是前面反复强调“显存账本”的原因。不了解显存主要被谁占用，就无法选择正确的分布式策略。</p>
+</section>
+<section id="服务扛不住" class="level3" data-number="28.5.3">
+<h3 data-number="28.5.3" class="anchored" data-anchor-id="服务扛不住"><span class="header-section-number">28.5.3</span> 服务扛不住</h3>
+<p>推理分布式和训练分布式很不一样。训练通常围绕一个 global step 同步推进；推理面对的是不断进入和离开的在线请求。一次 LLM 请求还会分成 prefill 和 decode 两种计算形态，并持续消耗 KV Cache。</p>
+<p>推理扩展要同时回答：</p>
+<ul>
+<li>是增加独立副本，还是把一个大模型切到多张 GPU？</li>
+<li>请求路由是否知道模型版本、KV Cache、上下文长度和队列水位？</li>
+<li>batch 策略提升吞吐后，TTFT、TPOT 和 P99 是否仍满足 SLA？</li>
+<li>某个推理副本故障时，正在生成的流式请求如何处理？</li>
+</ul>
+</section>
+</section>
+<section id="平台视角分布式任务不是一组普通进程" class="level2" data-number="28.6">
+<h2 data-number="28.6" class="anchored" data-anchor-id="平台视角分布式任务不是一组普通进程"><span class="header-section-number">28.6</span> 平台视角：分布式任务不是一组普通进程</h2>
+<p>从应用代码看，分布式任务是一组 rank；从平台看，它至少有五类约束。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>平台问题</th>
+<th>为什么重要</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>同时启动</td>
+<td>多数分布式训练要求所有 rank 都到齐，少一个 rank 可能整个任务无法开始</td>
+</tr>
+<tr class="even">
+<td>拓扑放置</td>
+<td>Tensor Parallel 更适合放在高速 GPU 互联内，跨节点切层内矩阵通常代价很高</td>
+</tr>
+<tr class="odd">
+<td>稳定通信</td>
+<td>NCCL 超时、网络抖动、RDMA 配置错误会让训练卡住或失败</td>
+</tr>
+<tr class="even">
+<td>状态恢复</td>
+<td>checkpoint 不只是 weights，还可能包含 optimizer state、scheduler、随机状态和 shard 元数据</td>
+</tr>
+<tr class="odd">
+<td>rank 级观测</td>
+<td>只看进程存活不够，要能看到每个 rank 的 step time、通信时间、显存和错误</td>
+</tr>
+</tbody>
+</table>
+<p>这一章暂时不展开 Kubernetes。原因很简单：如果还没有理解 rank、shard、collective 和 topology，后面讨论 Pod、Job、Gang Scheduling、Device Plugin 和拓扑感知调度就会变成名词堆叠。先理解分布式 AI 的基本物理，再看平台如何表达这些约束。</p>
+</section>
+<section id="常见误区" class="level2" data-number="28.7">
+<h2 data-number="28.7" class="anchored" data-anchor-id="常见误区"><span class="header-section-number">28.7</span> 常见误区</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>误区</th>
+<th>更准确的说法</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>GPU 越多越快</td>
+<td>GPU 增多会减少单卡计算，但也会增加通信、同步和排队</td>
+</tr>
+<tr class="even">
+<td>DDP 能解决显存不足</td>
+<td>DDP 通常每张卡都有完整模型副本，不能从根本上减少单卡模型状态</td>
+</tr>
+<tr class="odd">
+<td>FSDP/ZeRO 一定更快</td>
+<td>它们主要为省显存而来，可能因为通信增加而变慢</td>
+</tr>
+<tr class="even">
+<td>Tensor Parallel 可以随便跨节点</td>
+<td>TP 层内通信频繁，拓扑差会非常伤性能</td>
+</tr>
+<tr class="odd">
+<td>推理扩副本就够了</td>
+<td>大模型、长上下文、KV Cache 和 SLA 会让推理扩展变成状态管理问题</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="本章小结" class="level2" data-number="28.8">
+<h2 data-number="28.8" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">28.8</span> 本章小结</h2>
+<p>分布式 AI 的核心不是“多机多卡”四个字，而是切分和重组。Data Parallel 切数据，FSDP/ZeRO 切训练状态，Tensor Parallel 切层内计算，Pipeline Parallel 切模型层，分布式推理切请求、模型副本和运行阶段。后面所有章节都围绕同一个标准展开：<strong>切了什么，通信什么，省了什么，代价是什么。</strong></p>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-nvidia-nccl-user-guide" class="csl-entry" role="listitem">
+<span>《NVIDIA NCCL User Guide》</span>. 不详. <a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/" class="uri">https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/</a>.
+</div>
+<div id="ref-pytorch-distributed-overview" class="csl-entry" role="listitem">
+<span>《PyTorch Distributed Overview》</span>. 不详. <a href="https://docs.pytorch.org/tutorials/beginner/dist_overview.html" class="uri">https://docs.pytorch.org/tutorials/beginner/dist_overview.html</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -972,8 +1337,8 @@ ul.task-list li input[type="checkbox"] {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p6/35-platformization.html" class="pagination-link" aria-label="为什么 AI 任务需要平台化">
-        <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/29-data-parallel-ddp.html" class="pagination-link" aria-label="Data Parallel 与 DDP">
+        <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

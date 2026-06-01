@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>34&nbsp; 慢节点、故障与恢复 – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,27 +20,7 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for citations */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-  margin-bottom: 0em;
-}
-.hanging-indent div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}</style>
+</style>
 
 
 <script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -50,8 +30,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p6/35-platformization.html" rel="next">
+<link href="../../ch/p5/33-distributed-inference.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +84,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/34-straggler-fault.html"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +203,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -400,7 +380,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/34-straggler-fault.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/34-straggler-fault.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span></a>
   </div>
 </li>
@@ -541,22 +521,26 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">34.1</span> 本章要回答的问题</a></li>
+  <li><a href="#什么是-straggler" id="toc-什么是-straggler" class="nav-link" data-scroll-target="#什么是-straggler"><span class="header-section-number">34.2</span> 什么是 straggler</a></li>
+  <li><a href="#慢节点从哪里来" id="toc-慢节点从哪里来" class="nav-link" data-scroll-target="#慢节点从哪里来"><span class="header-section-number">34.3</span> 慢节点从哪里来</a></li>
+  <li><a href="#故障类型" id="toc-故障类型" class="nav-link" data-scroll-target="#故障类型"><span class="header-section-number">34.4</span> 故障类型</a></li>
+  <li><a href="#观测要到-rank-级别" id="toc-观测要到-rank-级别" class="nav-link" data-scroll-target="#观测要到-rank-级别"><span class="header-section-number">34.5</span> 观测要到 rank 级别</a></li>
+  <li><a href="#恢复不是简单重启" id="toc-恢复不是简单重启" class="nav-link" data-scroll-target="#恢复不是简单重启"><span class="header-section-number">34.6</span> 恢复不是简单重启</a></li>
+  <li><a href="#gang-restart-为什么常见" id="toc-gang-restart-为什么常见" class="nav-link" data-scroll-target="#gang-restart-为什么常见"><span class="header-section-number">34.7</span> gang restart 为什么常见</a></li>
+  <li><a href="#推理故障恢复的不同点" id="toc-推理故障恢复的不同点" class="nav-link" data-scroll-target="#推理故障恢复的不同点"><span class="header-section-number">34.8</span> 推理故障恢复的不同点</a></li>
+  <li><a href="#一个-nccl-timeout-案例" id="toc-一个-nccl-timeout-案例" class="nav-link" data-scroll-target="#一个-nccl-timeout-案例"><span class="header-section-number">34.9</span> 一个 NCCL timeout 案例</a></li>
+  <li><a href="#平台治理能力" id="toc-平台治理能力" class="nav-link" data-scroll-target="#平台治理能力"><span class="header-section-number">34.10</span> 平台治理能力</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">34.11</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/34-straggler-fault.html"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></h1>
 </div>
 
 
@@ -573,178 +557,307 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="34.1">
+<h2 data-number="34.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">34.1</span> 本章要回答的问题</h2>
+<p>分布式 AI 最大的现实问题之一是：<strong>整体速度由最慢 rank 决定，整体可靠性受任意关键 rank 影响。</strong></p>
+<p>单卡任务失败，通常是一个进程失败。分布式任务失败，可能是一个 rank OOM、一个网络连接超时、一个节点 GPU 降频、一个 shard checkpoint 写坏，最后表现为整个任务卡住或退出。</p>
+<section class="visual-panel straggler-panel" aria-labelledby="straggler-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">Rank Timeline</p>
+      <h3 class="visual-panel__title anchored" id="straggler-title">慢节点：一个 rank 变慢，所有 rank 都在同步点等待</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创排障图；用于把 straggler、barrier 和 gang restart 放到同一张图里看。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
+  <div class="straggler">
+    <div class="straggler__timeline">
+      <div class="straggler__row">
+        <strong>rank 0</strong>
+        <span class="work work--normal">compute</span>
+        <span class="wait">wait</span>
+        <em>AllReduce</em>
       </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
+      <div class="straggler__row">
+        <strong>rank 1</strong>
+        <span class="work work--slow">compute slow</span>
+        <span class="wait wait--short">sync</span>
+        <em>AllReduce</em>
       </div>
+      <div class="straggler__row">
+        <strong>rank 2</strong>
+        <span class="work work--normal">compute</span>
+        <span class="wait">wait</span>
+        <em>AllReduce</em>
+      </div>
+      <div class="straggler__row">
+        <strong>rank 3</strong>
+        <span class="work work--normal">compute</span>
+        <span class="wait">wait</span>
+        <em>AllReduce</em>
+      </div>
+      <div class="straggler__barrier">同步点：最慢 rank 到达之前，其他 rank 都在等</div>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="straggler__recovery">
+      <div><strong>观测</strong><span>rank step time、collective time、GPU/HBM、网络</span></div>
+      <div><strong>定位</strong><span>数据慢、计算慢、网络慢、checkpoint 卡住</span></div>
+      <div><strong>恢复</strong><span>checkpoint、gang restart、节点隔离、重新调度</span></div>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
+<section id="什么是-straggler" class="level2" data-number="34.2">
+<h2 data-number="34.2" class="anchored" data-anchor-id="什么是-straggler"><span class="header-section-number">34.2</span> 什么是 straggler</h2>
+<p>straggler 指拖慢整体进度的慢 rank、慢 stage、慢副本或慢节点。</p>
+<p>在 DDP 中，某个 rank backward 慢，其他 rank 会在 AllReduce 附近等待。在 PP 中，某个 stage 慢，后续 stage 拿不到 activation。在分布式推理中，某个 TP group 内一张 GPU 慢，整个模型副本的 decode 速度都会下降。</p>
+<p>分布式系统里，平均值经常掩盖问题。你看到平均 step time 是 1 秒，但可能 15 个 rank 是 800 ms，1 个 rank 是 1 秒，所有人都被它拖到 1 秒。</p>
+</section>
+<section id="慢节点从哪里来" class="level2" data-number="34.3">
+<h2 data-number="34.3" class="anchored" data-anchor-id="慢节点从哪里来"><span class="header-section-number">34.3</span> 慢节点从哪里来</h2>
+<p>常见来源可以按资源流拆开。</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
+<th>来源</th>
+<th>表现</th>
+<th>例子</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
+<td>数据慢</td>
+<td>rank 等 batch</td>
+<td>某个节点读取远端存储慢，tokenizer CPU 不够</td>
 </tr>
 <tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
+<td>计算慢</td>
+<td>某 rank forward/backward 更慢</td>
+<td>GPU 降频、MIG 配置不同、输入长度不同</td>
 </tr>
 <tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
+<td>显存问题</td>
+<td>OOM、频繁释放、cache eviction</td>
+<td>batch 太大，KV Cache 逼近上限</td>
 </tr>
 <tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
+<td>网络慢</td>
+<td>collective 或 stage send/recv 变慢</td>
+<td>RDMA 配置异常、跨机架、拥塞</td>
+</tr>
+<tr class="odd">
+<td>存储慢</td>
+<td>checkpoint 卡住</td>
+<td>多 rank 同时写对象存储</td>
+</tr>
+<tr class="even">
+<td>代码路径不一致</td>
+<td>某些 rank 执行额外逻辑</td>
+<td>rank 0 logging 过重，验证逻辑放错位置</td>
 </tr>
 </tbody>
 </table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
+<p>这也是为什么本书前面先讲五条资源流：CPU、GPU、显存、网络、存储。straggler 往往不是“GPU 慢”这一个词能解释的。</p>
 </section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="故障类型" class="level2" data-number="34.4">
+<h2 data-number="34.4" class="anchored" data-anchor-id="故障类型"><span class="header-section-number">34.4</span> 故障类型</h2>
+<p>分布式 AI 常见故障包括：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>故障</th>
+<th>表现</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>rank 进程退出</td>
+<td>某个 worker crash</td>
+<td>训练通常整体失败或 hang</td>
+</tr>
+<tr class="even">
+<td>GPU OOM</td>
+<td>某个 rank CUDA OOM</td>
+<td>可能导致 communicator 异常</td>
+</tr>
+<tr class="odd">
+<td>NCCL timeout</td>
+<td>collective 长时间无响应</td>
+<td>多数 rank 等待，最终超时</td>
+</tr>
+<tr class="even">
+<td>节点重启</td>
+<td>多个 rank 消失</td>
+<td>需要整组恢复</td>
+</tr>
+<tr class="odd">
+<td>checkpoint 损坏</td>
+<td>恢复失败</td>
+<td>训练进度丢失或需要回滚</td>
+</tr>
+<tr class="even">
+<td>推理副本半失败</td>
+<td>服务还活着但生成异常</td>
+<td>P99 变差，流式请求中断</td>
+</tr>
+</tbody>
+</table>
+<p>只看进程存活不够。很多问题不是“进程死了”，而是进程活着但不再有效推进。</p>
+</section>
+<section id="观测要到-rank-级别" class="level2" data-number="34.5">
+<h2 data-number="34.5" class="anchored" data-anchor-id="观测要到-rank-级别"><span class="header-section-number">34.5</span> 观测要到 rank 级别</h2>
+<p>分布式排障需要把指标打到 rank、stage 或 replica group。</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>per-rank step time</td>
+<td>找最慢 rank</td>
+</tr>
+<tr class="even">
+<td>DataLoader time</td>
+<td>判断是否数据供给慢</td>
+</tr>
+<tr class="odd">
+<td>forward/backward time</td>
+<td>判断计算是否不均</td>
+</tr>
+<tr class="even">
+<td>collective time</td>
+<td>判断通信是否成为瓶颈</td>
+</tr>
+<tr class="odd">
+<td>GPU utilization / HBM usage</td>
+<td>判断计算和显存状态</td>
+</tr>
+<tr class="even">
+<td>network throughput / retransmit</td>
+<td>判断网络异常</td>
+</tr>
+<tr class="odd">
+<td>checkpoint save/load time</td>
+<td>判断存储是否拖慢</td>
+</tr>
+<tr class="even">
+<td>inference TTFT/TPOT by replica</td>
+<td>判断推理慢副本</td>
+</tr>
+</tbody>
+</table>
+<p>这些指标要能按 rank 关联到节点、GPU、网卡、Pod 和任务 ID。否则看到 NCCL timeout，也不知道是哪条链路、哪个节点、哪个 rank 引起的。</p>
+</section>
+<section id="恢复不是简单重启" class="level2" data-number="34.6">
+<h2 data-number="34.6" class="anchored" data-anchor-id="恢复不是简单重启"><span class="header-section-number">34.6</span> 恢复不是简单重启</h2>
+<p>普通服务重启后还能继续处理新请求。训练任务重启后，如果没有 checkpoint，可能丢失数小时甚至数天计算。</p>
+<p>训练恢复至少涉及：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
+<li>model parameters。</li>
+<li>optimizer state。</li>
+<li>scheduler state。</li>
+<li>global step。</li>
+<li>random state。</li>
+<li>dataset sampler state。</li>
+<li>sharded checkpoint 元数据。</li>
+<li>训练配置和代码版本。</li>
 </ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
+<p>如果只保存 weights，通常只能用于推理或 fine-tune 起点，不等于可无缝恢复训练。长训练任务必须把 checkpoint 当成系统设计的一部分，而不是训练脚本最后的附属功能。</p>
 </section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
-</tr>
-<tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
-</tr>
-<tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
-</tr>
-</tbody>
-</table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
+<section id="gang-restart-为什么常见" class="level2" data-number="34.7">
+<h2 data-number="34.7" class="anchored" data-anchor-id="gang-restart-为什么常见"><span class="header-section-number">34.7</span> gang restart 为什么常见</h2>
+<p>很多分布式训练任务要求所有 rank 处于一致状态。某个 rank 失败后，其他 rank 未必能继续独自推进。最常见的恢复方式是整组停止，从最近 checkpoint 重新启动。</p>
+<p>这叫 gang restart 的直觉：</p>
+<pre class="text"><code>一个 rank 失败
+-&gt; 整个 worker group 停止
+-&gt; 从一致 checkpoint 恢复
+-&gt; 所有 rank 重新 rendezvous
+-&gt; 继续训练</code></pre>
+<p>它看起来粗暴，但比让剩余 rank 带着不一致状态继续跑更可靠。Elastic training 可以在某些场景动态改变 worker 数，但它有前提，并不是所有模型、数据管线和并行策略都天然支持。</p>
 </section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
-</tr>
-<tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
-</tr>
-<tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
-</tr>
-<tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
-</tr>
-</tbody>
-</table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
-</section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
+<section id="推理故障恢复的不同点" class="level2" data-number="34.8">
+<h2 data-number="34.8" class="anchored" data-anchor-id="推理故障恢复的不同点"><span class="header-section-number">34.8</span> 推理故障恢复的不同点</h2>
+<p>推理没有 global step，但有在线请求状态。尤其是流式 LLM 请求，故障可能发生在已经返回了一部分 token 之后。</p>
+<p>推理恢复要回答：</p>
 <ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li>客户端连接断了，runtime 是否释放 KV Cache？</li>
+<li>副本 OOM 后，队列里的请求是否重试？</li>
+<li>重试是否会导致重复生成或顺序变化？</li>
+<li>prefix cache 是否跨副本共享？</li>
+<li>prefill/decode 分离时，decode 失败是否要重跑 prefill？</li>
+<li>网关是否能把慢副本摘掉，而不是继续分流？</li>
 </ul>
+<p>训练故障关注“进度能不能恢复”；推理故障关注“请求能否按 SLA 完成或明确失败”。</p>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="一个-nccl-timeout-案例" class="level2" data-number="34.9">
+<h2 data-number="34.9" class="anchored" data-anchor-id="一个-nccl-timeout-案例"><span class="header-section-number">34.9</span> 一个 NCCL timeout 案例</h2>
+<p>现象：多节点 DDP 训练运行数小时后卡住，日志出现 NCCL timeout。</p>
+<p>可能原因不是一个：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>方向</th>
+<th>检查</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>慢 rank</td>
+<td>查看 timeout 前各 rank step time 是否分化</td>
+</tr>
+<tr class="even">
+<td>网络</td>
+<td>查看 RDMA、网卡错误、跨节点链路、拥塞</td>
+</tr>
+<tr class="odd">
+<td>数据</td>
+<td>某个 rank 是否在 DataLoader 阻塞，导致没进入 collective</td>
+</tr>
+<tr class="even">
+<td>OOM</td>
+<td>某个 rank 是否先 CUDA OOM，其他 rank 等它</td>
+</tr>
+<tr class="odd">
+<td>checkpoint</td>
+<td>timeout 是否总发生在保存点附近</td>
+</tr>
+<tr class="even">
+<td>拓扑</td>
+<td>任务是否被调度到跨机架或弱链路节点</td>
+</tr>
+</tbody>
+</table>
+<p>NCCL timeout 是症状，不一定是根因。真正排障要把 rank timeline、节点拓扑和资源指标拼起来。</p>
+</section>
+<section id="平台治理能力" class="level2" data-number="34.10">
+<h2 data-number="34.10" class="anchored" data-anchor-id="平台治理能力"><span class="header-section-number">34.10</span> 平台治理能力</h2>
+<p>为了让分布式 AI 在集群里稳定运行，平台需要：</p>
+<ul>
+<li>gang scheduling：成组调度，避免 rank 缺失。</li>
+<li>topology-aware placement：根据并行策略选择 GPU 和节点。</li>
+<li>health check：区分进程存活和训练有效推进。</li>
+<li>checkpoint policy：控制保存频率、保留策略、恢复路径。</li>
+<li>failure domain：避免把关键 rank 都放在同一高风险节点或机架。</li>
+<li>quarantine：识别频繁出错或性能异常的节点。</li>
+<li>preemption policy：抢占前触发 checkpoint 或优雅终止。</li>
+<li>rank-level observability：让排障能定位到 rank、GPU、NIC 和存储路径。</li>
+</ul>
+<p>这些能力会在后面的 Kubernetes、调度与资源优化部分变成具体实现。</p>
+</section>
+<section id="本章小结" class="level2" data-number="34.11">
+<h2 data-number="34.11" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">34.11</span> 本章小结</h2>
+<p>分布式 AI 的故障治理要记住两句话：<strong>性能由最慢 rank 决定，恢复由一致状态决定。</strong> straggler 排障要拆资源流，故障恢复要依赖 checkpoint、gang restart、拓扑和 rank 级观测。理解这些，再看 K8s 上的 AI 任务部署，才知道平台真正要解决什么。</p>
 
 
-<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
-</div>
-</div>
 </section>
 
 </main> <!-- /main -->
@@ -1150,13 +1263,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/33-distributed-inference.html" class="pagination-link" aria-label="分布式推理">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p6/35-platformization.html" class="pagination-link" aria-label="为什么 AI 任务需要平台化">
+        <span class="nav-page-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; 优化器与参数更新 – AI 训练与推理系统工程</title>
+<title>29&nbsp; Data Parallel 与 DDP – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -50,8 +50,8 @@ div.csl-indent {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../ch/p2/11-metrics.html" rel="next">
-<link href="../../ch/p2/09-forward-backward.html" rel="prev">
+<link href="../../ch/p5/30-fsdp-zero.html" rel="next">
+<link href="../../ch/p5/28-distributed-overview.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -104,7 +104,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/29-data-parallel-ddp.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -223,7 +223,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../ch/p2/10-optimizer.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></span></a>
   </div>
 </li>
@@ -370,7 +370,7 @@ div.csl-indent {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../ch/p5/29-data-parallel-ddp.html" class="sidebar-item-text sidebar-link">
+  <a href="../../ch/p5/29-data-parallel-ddp.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span></a>
   </div>
 </li>
@@ -541,22 +541,25 @@ div.csl-indent {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</a></li>
-  <li><a href="#从-sgd-到-adam" id="toc-从-sgd-到-adam" class="nav-link" data-scroll-target="#从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</a></li>
-  <li><a href="#为什么-optimizer-是系统问题" id="toc-为什么-optimizer-是系统问题" class="nav-link" data-scroll-target="#为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</a></li>
-  <li><a href="#一个显存直觉adam-为什么贵" id="toc-一个显存直觉adam-为什么贵" class="nav-link" data-scroll-target="#一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</a></li>
-  <li><a href="#learning-rate-schedule-是训练状态的一部分" id="toc-learning-rate-schedule-是训练状态的一部分" class="nav-link" data-scroll-target="#learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</a></li>
-  <li><a href="#optimizer-与分布式切分" id="toc-optimizer-与分布式切分" class="nav-link" data-scroll-target="#optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">10.7</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">29.1</span> 本章要回答的问题</a></li>
+  <li><a href="#data-parallel-的基本形态" id="toc-data-parallel-的基本形态" class="nav-link" data-scroll-target="#data-parallel-的基本形态"><span class="header-section-number">29.2</span> Data Parallel 的基本形态</a></li>
+  <li><a href="#global-batch-怎么算" id="toc-global-batch-怎么算" class="nav-link" data-scroll-target="#global-batch-怎么算"><span class="header-section-number">29.3</span> global batch 怎么算</a></li>
+  <li><a href="#distributedsampler-为什么重要" id="toc-distributedsampler-为什么重要" class="nav-link" data-scroll-target="#distributedsampler-为什么重要"><span class="header-section-number">29.4</span> DistributedSampler 为什么重要</a></li>
+  <li><a href="#allreduce-是-ddp-的核心同步点" id="toc-allreduce-是-ddp-的核心同步点" class="nav-link" data-scroll-target="#allreduce-是-ddp-的核心同步点"><span class="header-section-number">29.5</span> AllReduce 是 DDP 的核心同步点</a></li>
+  <li><a href="#什么时候-ddp-很合适" id="toc-什么时候-ddp-很合适" class="nav-link" data-scroll-target="#什么时候-ddp-很合适"><span class="header-section-number">29.6</span> 什么时候 DDP 很合适</a></li>
+  <li><a href="#什么时候-ddp-不够" id="toc-什么时候-ddp-不够" class="nav-link" data-scroll-target="#什么时候-ddp-不够"><span class="header-section-number">29.7</span> 什么时候 DDP 不够</a></li>
+  <li><a href="#一个排障案例" id="toc-一个排障案例" class="nav-link" data-scroll-target="#一个排障案例"><span class="header-section-number">29.8</span> 一个排障案例</a></li>
+  <li><a href="#平台需要为-ddp-提供什么" id="toc-平台需要为-ddp-提供什么" class="nav-link" data-scroll-target="#平台需要为-ddp-提供什么"><span class="header-section-number">29.9</span> 平台需要为 DDP 提供什么</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">29.10</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p2/07-data.html">第二篇 训练流程</a></li><li class="breadcrumb-item"><a href="../../ch/p2/10-optimizer.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p5/28-distributed-overview.html">第五篇 分布式 AI</a></li><li class="breadcrumb-item"><a href="../../ch/p5/29-data-parallel-ddp.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">优化器与参数更新</span></h1>
+<h1 class="title"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></h1>
 </div>
 
 
@@ -573,176 +576,237 @@ div.csl-indent {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">10.1</span> 本章要回答的问题</h2>
-<p>backward 得到 <code>gradient</code> 后，模型还没有变好。真正修改 parameters 的，是 optimizer。</p>
-<blockquote class="blockquote">
-<p>optimizer 的本质，是根据 gradient 和自身保存的状态，决定每个 parameter 应该移动多少。</p>
-</blockquote>
-<section class="visual-panel excalidraw-sketch" aria-labelledby="sketch-optimizer-title">
+<section id="本章要回答的问题" class="level2" data-number="29.1">
+<h2 data-number="29.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">29.1</span> 本章要回答的问题</h2>
+<p>Data Parallel 是最常见的分布式训练策略。它的直觉很朴素：<strong>每张 GPU 放一份完整模型，喂不同数据，最后把 gradients 对齐。</strong></p>
+<p>PyTorch DistributedDataParallel, 简称 DDP, 是 PyTorch 官方推荐的多进程数据并行方式之一 <span class="citation" data-cites="pytorch-ddp">(<a href="#ref-pytorch-ddp" role="doc-biblioref"><span>《DistributedDataParallel》</span>, 不详</a>)</span>。它不会自动让模型变小，也不会自动解决数据加载慢的问题。它解决的是：当模型单卡能放下时，如何用多张 GPU 加快训练吞吐。</p>
+<section class="visual-panel ddp-ring-panel" aria-labelledby="ddp-ring-title">
   <div class="visual-panel__header">
     <div>
-      <p class="visual-panel__eyebrow">Excalidraw Style</p>
-      <h3 class="visual-panel__title anchored" id="sketch-optimizer-title">optimizer 不是按钮，而是参数更新账房</h3>
+      <p class="visual-panel__eyebrow">Animated AllReduce</p>
+      <h3 class="visual-panel__title anchored" id="ddp-ring-title">DDP：四个 rank 各算梯度，再在环上同步</h3>
     </div>
-    <p class="visual-panel__note">手绘风格源文件：fig/excalidraw/optimizer-state.excalidraw</p>
+    <p class="visual-panel__note">原创动画图；概念依据 PyTorch DDP 与 NCCL AllReduce。</p>
   </div>
 
-  <div class="sketch-board">
-    <div class="sketch-two-lanes">
-      <div class="sketch-lane">
-        <h4 class="anchored">更新一次 parameters</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--blue"><strong>gradient</strong><span>这一步应该往哪里走</span></div>
-          <div class="sketch-mini sketch-box--yellow"><strong>state</strong><span>momentum、variance、step</span></div>
-          <div class="sketch-mini sketch-box--green"><strong>new weights</strong><span>parameters 移动一点点</span></div>
-        </div>
+  <div class="ddp-ring">
+    <div class="ddp-ring__left">
+      <div class="ddp-ring__stage">
+        <span>1</span><strong>Shard batch</strong><em>每个 rank 读不同样本</em>
       </div>
-      <div class="sketch-lane">
-        <h4 class="anchored">为什么它影响平台</h4>
-        <div class="sketch-mini-flow">
-          <div class="sketch-mini sketch-box--red"><strong>显存</strong><span>Adam 状态可能接近参数规模</span></div>
-          <div class="sketch-mini sketch-box--purple"><strong>checkpoint</strong><span>恢复训练必须保存 optimizer state</span></div>
-          <div class="sketch-mini sketch-box--cyan"><strong>分片</strong><span>ZeRO/FSDP 会切分这些状态</span></div>
-        </div>
+      <div class="ddp-ring__stage">
+        <span>2</span><strong>Local backward</strong><em>各自算出本地 gradients</em>
+      </div>
+      <div class="ddp-ring__stage">
+        <span>3</span><strong>AllReduce</strong><em>梯度求和/平均并回到每个 rank</em>
       </div>
     </div>
 
-    <p class="sketch-warning">只保存 weights 通常适合推理；要继续训练，必须把 optimizer、scheduler、step 和随机状态一起当作训练状态。</p>
+    <div class="ddp-ring__orbit" aria-label="DDP AllReduce ring">
+      <div class="ddp-ring__link"></div>
+      <div class="ddp-ring__packet ddp-ring__packet--one"></div>
+      <div class="ddp-ring__packet ddp-ring__packet--two"></div>
+      <div class="ddp-ring__packet ddp-ring__packet--three"></div>
+      <div class="ddp-ring__node ddp-ring__node--n0"><strong>rank 0</strong><span>grad A</span></div>
+      <div class="ddp-ring__node ddp-ring__node--n1"><strong>rank 1</strong><span>grad B</span></div>
+      <div class="ddp-ring__node ddp-ring__node--n2"><strong>rank 2</strong><span>grad C</span></div>
+      <div class="ddp-ring__node ddp-ring__node--n3"><strong>rank 3</strong><span>grad D</span></div>
+      <div class="ddp-ring__center"><strong>same update</strong><span>optimizer.step()</span></div>
+    </div>
   </div>
 </section>
 </section>
-<section id="从-sgd-到-adam" class="level2" data-number="10.2">
-<h2 data-number="10.2" class="anchored" data-anchor-id="从-sgd-到-adam"><span class="header-section-number">10.2</span> 从 SGD 到 Adam</h2>
-<p>最简单的更新可以写成：</p>
-<pre class="text"><code>parameter = parameter - learning_rate * gradient</code></pre>
-<p>这就是 SGD 的基本直觉。Adam 这类 optimizer 会额外保存动量、方差等状态，让更新更稳定，但代价是显存占用更大。</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>optimizer 状态</th>
-<th>含义</th>
-<th>系统影响</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>learning rate</td>
-<td>每次更新步长</td>
-<td>影响收敛和稳定性</td>
-</tr>
-<tr class="even">
-<td>momentum</td>
-<td>平滑更新方向</td>
-<td>增加状态</td>
-</tr>
-<tr class="odd">
-<td>variance</td>
-<td>估计梯度波动</td>
-<td>增加状态</td>
-</tr>
-<tr class="even">
-<td>master weights</td>
-<td>混合精度下可能保存高精度副本</td>
-<td>增加显存</td>
-</tr>
-</tbody>
-</table>
-<p>PyTorch 的 <code>torch.optim</code> 文档把 optimizer 设计成接收 parameters 并更新它们的对象 <span class="citation" data-cites="pytorch-optim">(<a href="#ref-pytorch-optim" role="doc-biblioref"><span>《torch.optim》</span>, 不详</a>)</span>。对算法开发者来说，这是一个 API；对平台工程师来说，它意味着训练进程里除了 weights 和 gradient，还有一批必须被管理的 optimizer state。</p>
-</section>
-<section id="为什么-optimizer-是系统问题" class="level2" data-number="10.3">
-<h2 data-number="10.3" class="anchored" data-anchor-id="为什么-optimizer-是系统问题"><span class="header-section-number">10.3</span> 为什么 optimizer 是系统问题</h2>
-<p>optimizer 看起来是算法组件，但它直接影响系统：</p>
+<section id="data-parallel-的基本形态" class="level2" data-number="29.2">
+<h2 data-number="29.2" class="anchored" data-anchor-id="data-parallel-的基本形态"><span class="header-section-number">29.2</span> Data Parallel 的基本形态</h2>
+<p>单卡训练时，一个 mini-batch 进入一份模型：</p>
+<pre class="text"><code>batch -&gt; model -&gt; loss -&gt; gradients -&gt; optimizer step</code></pre>
+<p>Data Parallel 中，global batch 会被切给多个 rank：</p>
+<pre class="text"><code>rank 0: batch shard A -&gt; model replica -&gt; gradients A
+rank 1: batch shard B -&gt; model replica -&gt; gradients B
+rank 2: batch shard C -&gt; model replica -&gt; gradients C
+rank 3: batch shard D -&gt; model replica -&gt; gradients D
+
+AllReduce gradients -&gt; 每个 rank 得到一致 gradients -&gt; 各自更新 parameters</code></pre>
+<p>这里有三个关键词：</p>
 <ul>
-<li>optimizer state 会占显存。</li>
-<li>ZeRO、FSDP 会切分 optimizer state。</li>
-<li>checkpoint 必须保存 optimizer state，否则 resume 后训练轨迹会变。</li>
-<li>learning rate schedule 需要和 step 计数一致。</li>
+<li><strong>replica</strong>：每张 GPU 上都有完整 parameters。</li>
+<li><strong>data shard</strong>：每个 rank 只看当前 step 的一部分数据。</li>
+<li><strong>AllReduce</strong>：把多个 rank 的 gradients 聚合并分发回每个 rank。</li>
 </ul>
-<p>因此，平台不能只保存模型 weights，还要保存完整训练状态。</p>
+<p>DDP 的正确性来自一个假设：如果每个 rank 用不同数据算出 gradients，再对 gradients 求和或平均，那么它近似等价于用更大的 batch 在一张逻辑 GPU 上训练。</p>
 </section>
-<section id="一个显存直觉adam-为什么贵" class="level2" data-number="10.4">
-<h2 data-number="10.4" class="anchored" data-anchor-id="一个显存直觉adam-为什么贵"><span class="header-section-number">10.4</span> 一个显存直觉：Adam 为什么贵</h2>
-<p>假设模型有 70 亿个 parameters，使用 BF16 weights 时，weights 本身约 14GB。但训练不是只放 weights：</p>
+<section id="global-batch-怎么算" class="level2" data-number="29.3">
+<h2 data-number="29.3" class="anchored" data-anchor-id="global-batch-怎么算"><span class="header-section-number">29.3</span> global batch 怎么算</h2>
+<p>多卡训练最容易被忽略的是 batch 语义。常用公式是：</p>
+<pre class="text"><code>global batch size =
+  per-device batch size
+  x gradient accumulation steps
+  x world size</code></pre>
+<p>假设每张 GPU 的 per-device batch size 是 8，world size 是 16，gradient accumulation steps 是 4，那么 global batch size 是：</p>
+<pre class="text"><code>8 x 16 x 4 = 512</code></pre>
+<p>这不是一个纯系统参数，它会影响训练收敛。把 GPU 从 8 张扩到 64 张，如果 per-device batch size 不变，global batch size 会放大 8 倍。此时可能需要重新考虑 learning rate、warmup、optimizer 和数据 shuffle。</p>
+</section>
+<section id="distributedsampler-为什么重要" class="level2" data-number="29.4">
+<h2 data-number="29.4" class="anchored" data-anchor-id="distributedsampler-为什么重要"><span class="header-section-number">29.4</span> DistributedSampler 为什么重要</h2>
+<p>分布式训练里，不能让每个 rank 都按同样顺序读完整数据。否则看起来用了多张 GPU，实际每张卡在重复看同一批样本，global batch 的语义会错。</p>
+<p>PyTorch <code>DistributedSampler</code> 用于把 dataset 切给多个进程，让每个 rank 读取自己的数据 shard <span class="citation" data-cites="pytorch-distributed-sampler">(<a href="#ref-pytorch-distributed-sampler" role="doc-biblioref"><span>《torch.utils.data.distributed.DistributedSampler》</span>, 不详</a>)</span>。它解决的是数据分发的正确性，而不仅是性能。</p>
+<p>一个常见错误是：训练脚本能跑，loss 也在下降，但多个 rank 重复读取相同数据。最后模型看似训练了很多 step，实际有效样本数远低于预期。这类问题从 GPU 利用率上不一定能看出来，必须检查 sampler、epoch seed 和数据划分逻辑。</p>
+</section>
+<section id="allreduce-是-ddp-的核心同步点" class="level2" data-number="29.5">
+<h2 data-number="29.5" class="anchored" data-anchor-id="allreduce-是-ddp-的核心同步点"><span class="header-section-number">29.5</span> AllReduce 是 DDP 的核心同步点</h2>
+<p>在 backward 过程中，每个 rank 得到本地 gradients。DDP 需要把这些 gradients 同步成一致结果。NCCL 提供 GPU 间高效 collective 通信，AllReduce 是其中最常见的操作之一 <span class="citation" data-cites="nvidia-nccl-user-guide">(<a href="#ref-nvidia-nccl-user-guide" role="doc-biblioref"><span>《NVIDIA NCCL User Guide》</span>, 不详</a>)</span>。</p>
+<p>AllReduce 可以理解为两件事合在一起：</p>
+<ol type="1">
+<li><strong>Reduce</strong>：把多个 rank 的 gradients 聚合起来。</li>
+<li><strong>Broadcast</strong>：把聚合后的结果发回所有 rank。</li>
+</ol>
+<p>DDP 的效率取决于计算和通信是否能较好重叠。模型参数很多、网络慢、拓扑差，或者某个 rank backward 特别慢，都会让其他 rank 在同步点等待。</p>
+</section>
+<section id="什么时候-ddp-很合适" class="level2" data-number="29.6">
+<h2 data-number="29.6" class="anchored" data-anchor-id="什么时候-ddp-很合适"><span class="header-section-number">29.6</span> 什么时候 DDP 很合适</h2>
+<p>DDP 适合以下条件同时成立的场景：</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
-<th>内容</th>
-<th>粗略直觉</th>
+<th>条件</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>weights</td>
-<td>当前模型参数</td>
+<td>模型能完整放入单卡</td>
+<td>每个 rank 都有完整 replica</td>
 </tr>
 <tr class="even">
-<td>gradient</td>
-<td>每个 parameter 的更新方向</td>
+<td>单 step 计算量较大</td>
+<td>有足够计算覆盖通信成本</td>
 </tr>
 <tr class="odd">
-<td>optimizer state</td>
-<td>Adam 的一阶动量、二阶动量等状态</td>
+<td>数据加载能跟上</td>
+<td>多卡会放大数据供给压力</td>
 </tr>
 <tr class="even">
-<td>master weights</td>
-<td>某些混合精度策略下保留的高精度副本</td>
+<td>网络和拓扑稳定</td>
+<td>AllReduce 对网络抖动敏感</td>
+</tr>
+<tr class="odd">
+<td>global batch 可接受</td>
+<td>扩卡后 batch 语义仍符合训练目标</td>
 </tr>
 </tbody>
 </table>
-<p>所以训练显存可能远大于推理显存。ZeRO、FSDP、optimizer state offload 这些技术，本质上就是在问：这些 optimizer state 是否一定要每张 GPU 都完整保存？</p>
+<p>例如 ResNet、BERT 类模型在常规规模下很适合 DDP。模型完整放得下，每个 step 的矩阵计算足够多，gradient 同步成本可控。</p>
 </section>
-<section id="learning-rate-schedule-是训练状态的一部分" class="level2" data-number="10.5">
-<h2 data-number="10.5" class="anchored" data-anchor-id="learning-rate-schedule-是训练状态的一部分"><span class="header-section-number">10.5</span> learning rate schedule 是训练状态的一部分</h2>
-<p>optimizer 不只看当前 gradient，还会受到 learning rate schedule 影响。常见 schedule 包括 warmup、cosine decay、step decay 等。它们的共同点是：<strong>当前 step 数会影响下一次参数更新。</strong></p>
-<p>这会带来一个平台问题：resume 时如果只恢复 weights，不恢复 optimizer state、scheduler state 和 step，训练表面上能继续跑，但轨迹已经变了。</p>
+<section id="什么时候-ddp-不够" class="level2" data-number="29.7">
+<h2 data-number="29.7" class="anchored" data-anchor-id="什么时候-ddp-不够"><span class="header-section-number">29.7</span> 什么时候 DDP 不够</h2>
+<p>DDP 不适合把所有问题都解决掉。</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>状态</th>
-<th>不恢复会怎样</th>
+<th>问题</th>
+<th>为什么 DDP 不够</th>
+<th>可能方向</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>optimizer state</td>
-<td>momentum/variance 丢失，更新方向突变</td>
+<td>模型 parameters 单卡放不下</td>
+<td>DDP 每卡都有完整 replica</td>
+<td>Tensor Parallel、FSDP、ZeRO-3</td>
 </tr>
 <tr class="even">
-<td>scheduler state</td>
-<td>learning rate 回到错误阶段</td>
+<td>optimizer state 太大</td>
+<td>每卡通常仍有完整 optimizer state</td>
+<td>ZeRO、FSDP</td>
 </tr>
 <tr class="odd">
-<td>step / epoch</td>
-<td>日志、评估、checkpoint 和数据游标错位</td>
+<td>batch 放大影响收敛</td>
+<td>多卡改变 global batch</td>
+<td>调 learning rate、gradient accumulation、训练策略</td>
 </tr>
 <tr class="even">
-<td>mixed precision scaler</td>
-<td>可能导致数值稳定性变化</td>
+<td>数据读取成为瓶颈</td>
+<td>多卡同时消费数据</td>
+<td>优化 DataLoader、缓存、数据格式、存储</td>
+</tr>
+<tr class="odd">
+<td>跨节点网络弱</td>
+<td>AllReduce 时间变长</td>
+<td>拓扑放置、RDMA、减少通信、换并行策略</td>
 </tr>
 </tbody>
 </table>
-<p>所以 checkpoint 不是保存一个模型文件，而是保存一次训练实验的可恢复状态。</p>
+<p>DDP 的边界要说清楚：<strong>它是吞吐扩展工具，不是显存压缩工具。</strong></p>
 </section>
-<section id="optimizer-与分布式切分" class="level2" data-number="10.6">
-<h2 data-number="10.6" class="anchored" data-anchor-id="optimizer-与分布式切分"><span class="header-section-number">10.6</span> optimizer 与分布式切分</h2>
-<p>大模型训练里，optimizer state 经常比想象中更贵。ZeRO/FSDP 这类技术会把 parameters、gradient、optimizer state 在多个 worker 之间切分，减少每张 GPU 的重复存储。</p>
-<p>这种优化改变了平台假设：</p>
+<section id="一个排障案例" class="level2" data-number="29.8">
+<h2 data-number="29.8" class="anchored" data-anchor-id="一个排障案例"><span class="header-section-number">29.8</span> 一个排障案例</h2>
+<p>现象：8 张 GPU 跑 DDP，Pod 都 Running，GPU 利用率只有 20%，step time 抖动明显。</p>
+<p>不要先怀疑 DDP 本身。按训练 step 拆开看：</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>检查点</th>
+<th>可能发现</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DataLoader 时间</td>
+<td>tokenizer 或数据读取太慢，rank 等数据</td>
+</tr>
+<tr class="even">
+<td>每个 rank 的 batch 数</td>
+<td>sampler 配错，某些 rank 数据更少或重复</td>
+</tr>
+<tr class="odd">
+<td>backward 时间</td>
+<td>某些输入更长，activation 更多，导致慢 rank</td>
+</tr>
+<tr class="even">
+<td>AllReduce 时间</td>
+<td>网络或拓扑差，通信拖慢</td>
+</tr>
+<tr class="odd">
+<td>checkpoint 时间</td>
+<td>所有 rank 在保存点同时写存储</td>
+</tr>
+</tbody>
+</table>
+<p>DDP 的关键特征是同步。只要一个 rank 慢，其他 rank 就会在 collective 或 barrier 附近等它。排障要看 rank 级别的 step timeline，而不是只看平均 GPU 利用率。</p>
+</section>
+<section id="平台需要为-ddp-提供什么" class="level2" data-number="29.9">
+<h2 data-number="29.9" class="anchored" data-anchor-id="平台需要为-ddp-提供什么"><span class="header-section-number">29.9</span> 平台需要为 DDP 提供什么</h2>
+<p>后面进入 Kubernetes 时，DDP 会变成一组互相依赖的进程。平台至少要表达：</p>
 <ul>
-<li>checkpoint 可能是 sharded checkpoint，不再是一个简单文件。</li>
-<li>worker 数量和并行策略会影响状态切分方式。</li>
-<li>恢复时需要知道原来的并行配置，或者能做重分片。</li>
-<li>调度器不能随意改变分布式训练拓扑，否则恢复和性能都会受影响。</li>
+<li><strong>world size</strong>：总共有多少 rank。</li>
+<li><strong>rank 编号</strong>：每个进程知道自己是第几个 rank。</li>
+<li><strong>rendezvous 地址</strong>：rank 之间如何发现彼此。</li>
+<li><strong>同启同停</strong>：少一个 rank，任务可能无法正常开始或继续。</li>
+<li><strong>网络连通性</strong>：rank 间端口、DNS、Service、HostNetwork 或容器网络策略。</li>
+<li><strong>拓扑偏好</strong>：通信密集任务尽量放在高速互联内。</li>
+<li><strong>统一配置</strong>：所有 rank 使用相同代码、镜像、模型配置和数据版本。</li>
 </ul>
+<p>这就是为什么 AI 训练平台常常需要 Training Operator、VolcanoJob、Kueue 或自定义控制器。普通 Job 能启动进程，但不一定理解 rank 之间的集体语义。</p>
 </section>
-<section id="本章小结" class="level2" data-number="10.7">
-<h2 data-number="10.7" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">10.7</span> 本章小结</h2>
-<p>optimizer 是 parameters 更新的执行者。训练平台要把 optimizer state 当作一等状态管理，因为它影响显存、checkpoint 和恢复一致性。</p>
+<section id="本章小结" class="level2" data-number="29.10">
+<h2 data-number="29.10" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">29.10</span> 本章小结</h2>
+<p>DDP 的一句话本质是：<strong>复制模型，切分数据，同步 gradients。</strong> 它适合模型能放下、想提高训练吞吐的场景。DDP 的系统瓶颈通常出现在数据供给、AllReduce、慢 rank 和 global batch 语义上。理解 DDP 后，再看 FSDP、ZeRO、Tensor Parallel 和 Pipeline Parallel，就会清楚它们到底是在补 DDP 的哪一个短板。</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-pytorch-optim" class="csl-entry" role="listitem">
-<span>《torch.optim》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/optim.html" class="uri">https://docs.pytorch.org/docs/stable/optim.html</a>.
+<div id="ref-pytorch-ddp" class="csl-entry" role="listitem">
+<span>《DistributedDataParallel》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html" class="uri">https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html</a>.
+</div>
+<div id="ref-nvidia-nccl-user-guide" class="csl-entry" role="listitem">
+<span>《NVIDIA NCCL User Guide》</span>. 不详. <a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/" class="uri">https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/</a>.
+</div>
+<div id="ref-pytorch-distributed-sampler" class="csl-entry" role="listitem">
+<span>《torch.utils.data.distributed.DistributedSampler》</span>. 不详. <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler" class="uri">https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler</a>.
 </div>
 </div>
 </section>
@@ -1150,13 +1214,13 @@ div.csl-indent {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p2/09-forward-backward.html" class="pagination-link" aria-label="前向计算、loss 与反向传播">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">前向计算、loss 与反向传播</span></span>
+      <a href="../../ch/p5/28-distributed-overview.html" class="pagination-link" aria-label="分布式 AI 的基本问题">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../ch/p2/11-metrics.html" class="pagination-link" aria-label="训练指标与实验记录">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">训练指标与实验记录</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../ch/p5/30-fsdp-zero.html" class="pagination-link" aria-label="FSDP 与 ZeRO">
+        <span class="nav-page-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

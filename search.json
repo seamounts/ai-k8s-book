@@ -2760,29 +2760,84 @@
     "href": "ch/p5/28-distributed-overview.html",
     "title": "28  分布式 AI 的基本问题",
     "section": "",
-    "text": "28.1 本篇要回答的问题\n前面已经完成单任务视角：训练如何更新 parameters，推理如何处理请求，GPU 如何执行 tensor 计算。现在进入分布式。\n后续本篇会展开 Data Parallel、DDP、ZeRO、FSDP、Tensor Parallel、Pipeline Parallel、分布式推理和慢节点问题。本章先建立判断框架。",
+    "text": "28.1 本章要回答的问题\n前四篇已经建立了单任务视角：训练如何读取数据、计算 loss、反向传播、更新 parameters；推理如何加载模型、处理请求、管理 KV Cache；GPU 如何通过 SM、HBM 和互联完成 tensor 计算。第五篇进入分布式。\n分布式 AI 不是“把程序复制到多张 GPU 上”。它真正解决的是三个问题：\nPyTorch 分布式体系把多进程、多设备通信抽象为 process group、rank、collective 等概念 (《PyTorch Distributed Overview》, 不详)。NCCL 则提供 AllReduce、AllGather、ReduceScatter 等 GPU 集合通信能力 (《NVIDIA NCCL User Guide》, 不详)。本篇不会先堆 API，而是先建立判断框架：切了什么，通信什么，省了什么，代价是什么。",
     "crumbs": [
       "第五篇 分布式 AI",
       "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
     ]
   },
   {
-    "objectID": "ch/p5/28-distributed-overview.html#本篇要回答的问题",
-    "href": "ch/p5/28-distributed-overview.html#本篇要回答的问题",
+    "objectID": "ch/p5/28-distributed-overview.html#本章要回答的问题",
+    "href": "ch/p5/28-distributed-overview.html#本章要回答的问题",
     "title": "28  分布式 AI 的基本问题",
     "section": "",
-    "text": "分布式 AI 的本质，不是“多用几张 GPU”，而是在计算、显存和通信之间重新切分任务。",
+    "text": "算得太慢：单张 GPU 可以跑，但训练周期太长，或者推理吞吐不够。\n放不下：模型 weights、activation、gradients、optimizer state 或 KV Cache 超过单卡显存。\n服务扛不住：单个推理副本无法同时满足吞吐、延迟和长上下文需求。\n\n\n分布式 AI 的本质，是把计算、显存状态和请求负载切到多个执行单元上，再用通信把它们重新拼成一个正确结果。\n\n\n\n  \n    \n      Decision Map\n      分布式 AI 不是多用 GPU，而是选择切分维度\n    \n    依据 PyTorch Distributed、NCCL collective 和常见大模型并行策略重绘。\n  \n\n  \n    \n      先问瓶颈\n      算得慢、放不下、扛不住，分别对应不同切分方式。\n    \n\n    \n      Compute\n      切数据\n      Data Parallel / DDP：每张 GPU 一份模型，处理不同 batch shard。\n      通信：gradients AllReduce\n    \n\n    \n      Memory\n      切状态\n      FSDP / ZeRO：parameters、gradients、optimizer state 按 rank 分片。\n      通信：AllGather / ReduceScatter\n    \n\n    \n      Model\n      切模型\n      Tensor Parallel 切层内矩阵，Pipeline Parallel 切模型层。\n      通信：层内结果或 stage activation\n    \n\n    \n      Serving\n      切请求与阶段\n      多副本、TP group、prefill/decode 分离共同服务 SLA。\n      状态：KV Cache、队列、路由",
     "crumbs": [
       "第五篇 分布式 AI",
       "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
     ]
   },
   {
-    "objectID": "ch/p5/28-distributed-overview.html#为什么需要分布式",
-    "href": "ch/p5/28-distributed-overview.html#为什么需要分布式",
+    "objectID": "ch/p5/28-distributed-overview.html#先统一几个词",
+    "href": "ch/p5/28-distributed-overview.html#先统一几个词",
     "title": "28  分布式 AI 的基本问题",
-    "section": "28.2 为什么需要分布式",
-    "text": "28.2 为什么需要分布式\n常见原因有三类：\n\n\n\n\n\n\n\n\n原因\n表现\n对应策略\n\n\n\n\n单卡算得太慢\n训练周期过长\nData Parallel、DDP\n\n\n单卡放不下\nweights、activation 或 optimizer state 太大\nZeRO、FSDP、Tensor Parallel\n\n\n推理并发或模型太大\n单副本容量不足\n多副本、模型切分、分布式推理\n\n\n\n分布式会带来额外通信，所以不是天然更快。真正的问题是：切分后节省的计算或显存，是否大于通信和同步成本。",
+    "section": "28.2 先统一几个词",
+    "text": "28.2 先统一几个词\n后面会持续使用这些术语，本书保持统一表达：\n\n\n\n\n\n\n\n\n术语\n含义\n为什么重要\n\n\n\n\nrank\n分布式任务里的一个工作进程编号\n日志、错误、通信、checkpoint 通常都按 rank 定位\n\n\nworld size\n参与同一个分布式任务的总 rank 数\n决定 global batch、通信规模和同步等待范围\n\n\nreplica\n完整模型副本\nData Parallel / DDP 会在多张 GPU 上放多个 replica\n\n\nshard\n被切开的状态片段\nFSDP / ZeRO 会把 parameters、gradients 或 optimizer state 切成 shard\n\n\ncollective\n多个 rank 共同参与的通信操作\nAllReduce、AllGather、ReduceScatter 都是 collective\n\n\ntopology\nGPU、CPU、网卡和节点之间的连接结构\n同样 8 张 GPU，单机 NVSwitch 和跨节点以太网不是同一种资源\n\n\n\n一个简单但非常有用的心智模型是：rank 是人，collective 是多人会议，topology 是他们之间的路。 人越多，不代表事情越快；会议越频繁，路越差，等待越多。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/28-distributed-overview.html#为什么分布式不会天然更快",
+    "href": "ch/p5/28-distributed-overview.html#为什么分布式不会天然更快",
+    "title": "28  分布式 AI 的基本问题",
+    "section": "28.3 为什么分布式不会天然更快",
+    "text": "28.3 为什么分布式不会天然更快\n单卡训练时，一个 step 大致是：\n读数据 -&gt; forward -&gt; loss -&gt; backward -&gt; optimizer step -&gt; checkpoint/metrics\n多卡后，每一步都可能多出通信和同步：\n每个 rank 读不同数据\n每个 rank 做 forward/backward\n多个 rank 同步 gradients 或状态 shard\n每个 rank 更新或恢复自己的状态\n所有 rank 在关键点等待一致\n如果一个模型在单卡上每个 step 用 500 ms，多卡后不是简单除以 GPU 数。假设计算减少到 80 ms，但通信、等待和数据抖动合计 70 ms，那么 8 卡 step time 可能是 150 ms，而不是 62.5 ms。分布式优化的核心就是让“省下的计算或显存”大于“新增的通信和同步”。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/28-distributed-overview.html#四种切分方式",
+    "href": "ch/p5/28-distributed-overview.html#四种切分方式",
+    "title": "28  分布式 AI 的基本问题",
+    "section": "28.4 四种切分方式",
+    "text": "28.4 四种切分方式\n分布式 AI 常见策略可以按“切什么”来理解。\n\n\n\n\n\n\n\n\n\n\n切分方式\n切的对象\n典型技术\n解决的问题\n主要代价\n\n\n\n\nData Parallel\n数据 batch\nData Parallel、DDP\n算得慢，想缩短训练时间\ngradients 同步，慢 rank 拖慢整体\n\n\nState Sharding\n训练状态\nZeRO、FSDP\noptimizer state、gradients、parameters 占显存\nAllGather、ReduceScatter、checkpoint 更复杂\n\n\nTensor Parallel\n单层 tensor 计算\nTensor Parallel\n单层太大或推理单副本太慢\n层内通信频繁，强依赖高速互联\n\n\nPipeline Parallel\n模型层\nPipeline Parallel\n模型太深、单卡放不下\nmicro-batch、pipeline bubble、stage 均衡\n\n\nService Parallel\n请求和服务副本\n多副本、prefill/decode 分离\n在线吞吐、延迟、长上下文\n路由、队列、KV Cache 状态管理\n\n\n\n这张表是本篇的主线。后面每章都会沿着同一个问题展开：\n\n它切了什么？\n它为什么能省计算或显存？\n它需要通信什么？\n它在哪些场景有效？\n它会给平台和调度带来什么新要求？",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/28-distributed-overview.html#三类典型问题",
+    "href": "ch/p5/28-distributed-overview.html#三类典型问题",
+    "title": "28  分布式 AI 的基本问题",
+    "section": "28.5 三类典型问题",
+    "text": "28.5 三类典型问题\n\n28.5.1 算得太慢\n如果单卡能放下模型，但训练太慢，优先考虑 Data Parallel / DDP。它让每张 GPU 处理不同 mini-batch，然后同步 gradients。直觉上像多个人同时批改不同试卷，最后一起讨论“模型参数应该往哪个方向改”。\n这个策略最适合：\n\n模型可以完整放到每张 GPU。\n每个 step 的计算量足够大，能覆盖通信成本。\n数据读取能跟上多卡消耗。\n多个 rank 之间网络和拓扑稳定。\n\n\n\n28.5.2 放不下\n如果单卡放不下，就要先判断放不下的是哪一类状态：\n\n\n\n\n\n\n\n\n显存对象\n主要出现场景\n常见解决方向\n\n\n\n\nparameters\n训练和推理都需要\nFSDP、ZeRO-3、Tensor Parallel\n\n\ngradients\n训练 backward 产生\nZeRO-2/3、FSDP\n\n\noptimizer state\n训练更新 parameters 需要\nZeRO-1/2/3、FSDP\n\n\nactivation\n训练 backward 需要中间结果\nactivation checkpointing、Pipeline Parallel\n\n\nKV Cache\nLLM 推理保存上下文\nPagedAttention、KV Cache 管理、分布式推理\n\n\n\n这就是前面反复强调“显存账本”的原因。不了解显存主要被谁占用，就无法选择正确的分布式策略。\n\n\n28.5.3 服务扛不住\n推理分布式和训练分布式很不一样。训练通常围绕一个 global step 同步推进；推理面对的是不断进入和离开的在线请求。一次 LLM 请求还会分成 prefill 和 decode 两种计算形态，并持续消耗 KV Cache。\n推理扩展要同时回答：\n\n是增加独立副本，还是把一个大模型切到多张 GPU？\n请求路由是否知道模型版本、KV Cache、上下文长度和队列水位？\nbatch 策略提升吞吐后，TTFT、TPOT 和 P99 是否仍满足 SLA？\n某个推理副本故障时，正在生成的流式请求如何处理？",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/28-distributed-overview.html#平台视角分布式任务不是一组普通进程",
+    "href": "ch/p5/28-distributed-overview.html#平台视角分布式任务不是一组普通进程",
+    "title": "28  分布式 AI 的基本问题",
+    "section": "28.6 平台视角：分布式任务不是一组普通进程",
+    "text": "28.6 平台视角：分布式任务不是一组普通进程\n从应用代码看，分布式任务是一组 rank；从平台看，它至少有五类约束。\n\n\n\n\n\n\n\n平台问题\n为什么重要\n\n\n\n\n同时启动\n多数分布式训练要求所有 rank 都到齐，少一个 rank 可能整个任务无法开始\n\n\n拓扑放置\nTensor Parallel 更适合放在高速 GPU 互联内，跨节点切层内矩阵通常代价很高\n\n\n稳定通信\nNCCL 超时、网络抖动、RDMA 配置错误会让训练卡住或失败\n\n\n状态恢复\ncheckpoint 不只是 weights，还可能包含 optimizer state、scheduler、随机状态和 shard 元数据\n\n\nrank 级观测\n只看进程存活不够，要能看到每个 rank 的 step time、通信时间、显存和错误\n\n\n\n这一章暂时不展开 Kubernetes。原因很简单：如果还没有理解 rank、shard、collective 和 topology，后面讨论 Pod、Job、Gang Scheduling、Device Plugin 和拓扑感知调度就会变成名词堆叠。先理解分布式 AI 的基本物理，再看平台如何表达这些约束。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/28-distributed-overview.html#常见误区",
+    "href": "ch/p5/28-distributed-overview.html#常见误区",
+    "title": "28  分布式 AI 的基本问题",
+    "section": "28.7 常见误区",
+    "text": "28.7 常见误区\n\n\n\n\n\n\n\n误区\n更准确的说法\n\n\n\n\nGPU 越多越快\nGPU 增多会减少单卡计算，但也会增加通信、同步和排队\n\n\nDDP 能解决显存不足\nDDP 通常每张卡都有完整模型副本，不能从根本上减少单卡模型状态\n\n\nFSDP/ZeRO 一定更快\n它们主要为省显存而来，可能因为通信增加而变慢\n\n\nTensor Parallel 可以随便跨节点\nTP 层内通信频繁，拓扑差会非常伤性能\n\n\n推理扩副本就够了\n大模型、长上下文、KV Cache 和 SLA 会让推理扩展变成状态管理问题",
     "crumbs": [
       "第五篇 分布式 AI",
       "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
@@ -2792,517 +2847,1254 @@
     "objectID": "ch/p5/28-distributed-overview.html#本章小结",
     "href": "ch/p5/28-distributed-overview.html#本章小结",
     "title": "28  分布式 AI 的基本问题",
-    "section": "28.3 本章小结",
-    "text": "28.3 本章小结\n第五篇会把前面的训练、推理和 GPU 知识连接到多 GPU、多节点系统。后面所有并行策略，都要用同一条标准判断：切了什么，通信什么，省了什么，代价是什么。",
+    "section": "28.8 本章小结",
+    "text": "28.8 本章小结\n分布式 AI 的核心不是“多机多卡”四个字，而是切分和重组。Data Parallel 切数据，FSDP/ZeRO 切训练状态，Tensor Parallel 切层内计算，Pipeline Parallel 切模型层，分布式推理切请求、模型副本和运行阶段。后面所有章节都围绕同一个标准展开：切了什么，通信什么，省了什么，代价是什么。\n\n\n\n\n《NVIDIA NCCL User Guide》. 不详. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/.\n\n\n《PyTorch Distributed Overview》. 不详. https://docs.pytorch.org/tutorials/beginner/dist_overview.html.",
     "crumbs": [
       "第五篇 分布式 AI",
       "<span class='chapter-number'>28</span>  <span class='chapter-title'>分布式 AI 的基本问题</span>"
     ]
   },
   {
+    "objectID": "ch/p5/29-data-parallel-ddp.html",
+    "href": "ch/p5/29-data-parallel-ddp.html",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "",
+    "text": "29.1 本章要回答的问题\nData Parallel 是最常见的分布式训练策略。它的直觉很朴素：每张 GPU 放一份完整模型，喂不同数据，最后把 gradients 对齐。\nPyTorch DistributedDataParallel, 简称 DDP, 是 PyTorch 官方推荐的多进程数据并行方式之一 (《DistributedDataParallel》, 不详)。它不会自动让模型变小，也不会自动解决数据加载慢的问题。它解决的是：当模型单卡能放下时，如何用多张 GPU 加快训练吞吐。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#本章要回答的问题",
+    "href": "ch/p5/29-data-parallel-ddp.html#本章要回答的问题",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "",
+    "text": "Animated AllReduce\n      DDP：四个 rank 各算梯度，再在环上同步\n    \n    原创动画图；概念依据 PyTorch DDP 与 NCCL AllReduce。\n  \n\n  \n    \n      \n        1Shard batch每个 rank 读不同样本\n      \n      \n        2Local backward各自算出本地 gradients\n      \n      \n        3AllReduce梯度求和/平均并回到每个 rank\n      \n    \n\n    \n      \n      \n      \n      \n      rank 0grad A\n      rank 1grad B\n      rank 2grad C\n      rank 3grad D\n      same updateoptimizer.step()",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#data-parallel-的基本形态",
+    "href": "ch/p5/29-data-parallel-ddp.html#data-parallel-的基本形态",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.2 Data Parallel 的基本形态",
+    "text": "29.2 Data Parallel 的基本形态\n单卡训练时，一个 mini-batch 进入一份模型：\nbatch -&gt; model -&gt; loss -&gt; gradients -&gt; optimizer step\nData Parallel 中，global batch 会被切给多个 rank：\nrank 0: batch shard A -&gt; model replica -&gt; gradients A\nrank 1: batch shard B -&gt; model replica -&gt; gradients B\nrank 2: batch shard C -&gt; model replica -&gt; gradients C\nrank 3: batch shard D -&gt; model replica -&gt; gradients D\n\nAllReduce gradients -&gt; 每个 rank 得到一致 gradients -&gt; 各自更新 parameters\n这里有三个关键词：\n\nreplica：每张 GPU 上都有完整 parameters。\ndata shard：每个 rank 只看当前 step 的一部分数据。\nAllReduce：把多个 rank 的 gradients 聚合并分发回每个 rank。\n\nDDP 的正确性来自一个假设：如果每个 rank 用不同数据算出 gradients，再对 gradients 求和或平均，那么它近似等价于用更大的 batch 在一张逻辑 GPU 上训练。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#global-batch-怎么算",
+    "href": "ch/p5/29-data-parallel-ddp.html#global-batch-怎么算",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.3 global batch 怎么算",
+    "text": "29.3 global batch 怎么算\n多卡训练最容易被忽略的是 batch 语义。常用公式是：\nglobal batch size =\n  per-device batch size\n  x gradient accumulation steps\n  x world size\n假设每张 GPU 的 per-device batch size 是 8，world size 是 16，gradient accumulation steps 是 4，那么 global batch size 是：\n8 x 16 x 4 = 512\n这不是一个纯系统参数，它会影响训练收敛。把 GPU 从 8 张扩到 64 张，如果 per-device batch size 不变，global batch size 会放大 8 倍。此时可能需要重新考虑 learning rate、warmup、optimizer 和数据 shuffle。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#distributedsampler-为什么重要",
+    "href": "ch/p5/29-data-parallel-ddp.html#distributedsampler-为什么重要",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.4 DistributedSampler 为什么重要",
+    "text": "29.4 DistributedSampler 为什么重要\n分布式训练里，不能让每个 rank 都按同样顺序读完整数据。否则看起来用了多张 GPU，实际每张卡在重复看同一批样本，global batch 的语义会错。\nPyTorch DistributedSampler 用于把 dataset 切给多个进程，让每个 rank 读取自己的数据 shard (《torch.utils.data.distributed.DistributedSampler》, 不详)。它解决的是数据分发的正确性，而不仅是性能。\n一个常见错误是：训练脚本能跑，loss 也在下降，但多个 rank 重复读取相同数据。最后模型看似训练了很多 step，实际有效样本数远低于预期。这类问题从 GPU 利用率上不一定能看出来，必须检查 sampler、epoch seed 和数据划分逻辑。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#allreduce-是-ddp-的核心同步点",
+    "href": "ch/p5/29-data-parallel-ddp.html#allreduce-是-ddp-的核心同步点",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.5 AllReduce 是 DDP 的核心同步点",
+    "text": "29.5 AllReduce 是 DDP 的核心同步点\n在 backward 过程中，每个 rank 得到本地 gradients。DDP 需要把这些 gradients 同步成一致结果。NCCL 提供 GPU 间高效 collective 通信，AllReduce 是其中最常见的操作之一 (《NVIDIA NCCL User Guide》, 不详)。\nAllReduce 可以理解为两件事合在一起：\n\nReduce：把多个 rank 的 gradients 聚合起来。\nBroadcast：把聚合后的结果发回所有 rank。\n\nDDP 的效率取决于计算和通信是否能较好重叠。模型参数很多、网络慢、拓扑差，或者某个 rank backward 特别慢，都会让其他 rank 在同步点等待。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#什么时候-ddp-很合适",
+    "href": "ch/p5/29-data-parallel-ddp.html#什么时候-ddp-很合适",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.6 什么时候 DDP 很合适",
+    "text": "29.6 什么时候 DDP 很合适\nDDP 适合以下条件同时成立的场景：\n\n\n\n条件\n说明\n\n\n\n\n模型能完整放入单卡\n每个 rank 都有完整 replica\n\n\n单 step 计算量较大\n有足够计算覆盖通信成本\n\n\n数据加载能跟上\n多卡会放大数据供给压力\n\n\n网络和拓扑稳定\nAllReduce 对网络抖动敏感\n\n\nglobal batch 可接受\n扩卡后 batch 语义仍符合训练目标\n\n\n\n例如 ResNet、BERT 类模型在常规规模下很适合 DDP。模型完整放得下，每个 step 的矩阵计算足够多，gradient 同步成本可控。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#什么时候-ddp-不够",
+    "href": "ch/p5/29-data-parallel-ddp.html#什么时候-ddp-不够",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.7 什么时候 DDP 不够",
+    "text": "29.7 什么时候 DDP 不够\nDDP 不适合把所有问题都解决掉。\n\n\n\n\n\n\n\n\n问题\n为什么 DDP 不够\n可能方向\n\n\n\n\n模型 parameters 单卡放不下\nDDP 每卡都有完整 replica\nTensor Parallel、FSDP、ZeRO-3\n\n\noptimizer state 太大\n每卡通常仍有完整 optimizer state\nZeRO、FSDP\n\n\nbatch 放大影响收敛\n多卡改变 global batch\n调 learning rate、gradient accumulation、训练策略\n\n\n数据读取成为瓶颈\n多卡同时消费数据\n优化 DataLoader、缓存、数据格式、存储\n\n\n跨节点网络弱\nAllReduce 时间变长\n拓扑放置、RDMA、减少通信、换并行策略\n\n\n\nDDP 的边界要说清楚：它是吞吐扩展工具，不是显存压缩工具。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#一个排障案例",
+    "href": "ch/p5/29-data-parallel-ddp.html#一个排障案例",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.8 一个排障案例",
+    "text": "29.8 一个排障案例\n现象：8 张 GPU 跑 DDP，Pod 都 Running，GPU 利用率只有 20%，step time 抖动明显。\n不要先怀疑 DDP 本身。按训练 step 拆开看：\n\n\n\n检查点\n可能发现\n\n\n\n\nDataLoader 时间\ntokenizer 或数据读取太慢，rank 等数据\n\n\n每个 rank 的 batch 数\nsampler 配错，某些 rank 数据更少或重复\n\n\nbackward 时间\n某些输入更长，activation 更多，导致慢 rank\n\n\nAllReduce 时间\n网络或拓扑差，通信拖慢\n\n\ncheckpoint 时间\n所有 rank 在保存点同时写存储\n\n\n\nDDP 的关键特征是同步。只要一个 rank 慢，其他 rank 就会在 collective 或 barrier 附近等它。排障要看 rank 级别的 step timeline，而不是只看平均 GPU 利用率。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#平台需要为-ddp-提供什么",
+    "href": "ch/p5/29-data-parallel-ddp.html#平台需要为-ddp-提供什么",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.9 平台需要为 DDP 提供什么",
+    "text": "29.9 平台需要为 DDP 提供什么\n后面进入 Kubernetes 时，DDP 会变成一组互相依赖的进程。平台至少要表达：\n\nworld size：总共有多少 rank。\nrank 编号：每个进程知道自己是第几个 rank。\nrendezvous 地址：rank 之间如何发现彼此。\n同启同停：少一个 rank，任务可能无法正常开始或继续。\n网络连通性：rank 间端口、DNS、Service、HostNetwork 或容器网络策略。\n拓扑偏好：通信密集任务尽量放在高速互联内。\n统一配置：所有 rank 使用相同代码、镜像、模型配置和数据版本。\n\n这就是为什么 AI 训练平台常常需要 Training Operator、VolcanoJob、Kueue 或自定义控制器。普通 Job 能启动进程，但不一定理解 rank 之间的集体语义。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/29-data-parallel-ddp.html#本章小结",
+    "href": "ch/p5/29-data-parallel-ddp.html#本章小结",
+    "title": "29  Data Parallel 与 DDP",
+    "section": "29.10 本章小结",
+    "text": "29.10 本章小结\nDDP 的一句话本质是：复制模型，切分数据，同步 gradients。 它适合模型能放下、想提高训练吞吐的场景。DDP 的系统瓶颈通常出现在数据供给、AllReduce、慢 rank 和 global batch 语义上。理解 DDP 后，再看 FSDP、ZeRO、Tensor Parallel 和 Pipeline Parallel，就会清楚它们到底是在补 DDP 的哪一个短板。\n\n\n\n\n《DistributedDataParallel》. 不详. https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html.\n\n\n《NVIDIA NCCL User Guide》. 不详. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/.\n\n\n《torch.utils.data.distributed.DistributedSampler》. 不详. https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler.",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>29</span>  <span class='chapter-title'>Data Parallel 与 DDP</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html",
+    "href": "ch/p5/30-fsdp-zero.html",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "",
+    "text": "30.1 本章要回答的问题\nDDP 的优势是简单稳定，但它有一个根本限制：每张 GPU 通常都保存完整训练状态。 当模型变大时，显存不是被一个东西占满，而是被 parameters、gradients、optimizer state 和 activation 一起占满。\nFSDP 和 ZeRO 解决的问题不是“让多卡更快”这么简单，而是：把训练状态切成 shard，让每张 GPU 只常驻一部分状态，从而训练更大的模型。\nPyTorch FSDP 的目标是对模型参数、梯度和优化器状态做分片，从而降低每个设备的显存占用 (《Getting Started with Fully Sharded Data Parallel》, 不详)。DeepSpeed ZeRO 的核心思想也是去掉数据并行中的冗余 optimizer、gradient 和 parameter 状态 (《ZeRO: Zero Redundancy Optimizer》, 不详)。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#本章要回答的问题",
+    "href": "ch/p5/30-fsdp-zero.html#本章要回答的问题",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "",
+    "text": "State Sharding\n      FSDP / ZeRO：用通信换显存，把训练状态分片\n    \n    原创机制图；概念依据 PyTorch FSDP 与 DeepSpeed ZeRO。\n  \n\n  \n    \n      \n        DDP\n        parametersgradientsoptimizer state\n        每张卡都有完整账本\n      \n      \n        ZeRO-1\n        parametersgradientsoptimizer shard\n        先切 optimizer state\n      \n      \n        ZeRO-2\n        parametersgradient shardoptimizer shard\n        再切 gradients\n      \n      \n        ZeRO-3 / FSDP\n        parameter shardgradient shardoptimizer shard\n        训练状态都分片\n      \n    \n\n    \n      AllGather临时拼齐当前模块参数\n      Forward / Backward只在需要时持有完整片段\n      ReduceScatter梯度重新切回 shard\n      结论：显存下降，但通信、checkpoint 和恢复复杂度上升。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#ddp-的显存冗余",
+    "href": "ch/p5/30-fsdp-zero.html#ddp-的显存冗余",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.2 DDP 的显存冗余",
+    "text": "30.2 DDP 的显存冗余\n以 Adam 训练为例，每个 rank 可能需要保存：\n\nparameters：模型权重。\ngradients：backward 产生的梯度。\noptimizer state：Adam 的动量、方差、step 等状态。\nactivation：forward 中间结果，用于 backward。\n\nDDP 复制模型副本后，每个 rank 都要承担这些状态。GPU 越多，集群总显存越大，但单张 GPU 上的模型状态并不会自动变小。\n所以会出现一个反直觉现象：你有 8 张 80GB GPU，总显存 640GB，但如果单卡必须常驻 100GB 训练状态，DDP 仍然跑不起来。因为 DDP 扩的是吞吐，不是单卡容量。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#zero-的三个阶段",
+    "href": "ch/p5/30-fsdp-zero.html#zero-的三个阶段",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.3 ZeRO 的三个阶段",
+    "text": "30.3 ZeRO 的三个阶段\nZeRO 可以按“切掉哪类冗余状态”来理解。\n\n\n\n\n\n\n\n\n\n\n阶段\n切分对象\n直觉\n主要收益\n主要代价\n\n\n\n\nZeRO-1\noptimizer state\n每张卡只保存一部分优化器账本\n降低 optimizer 显存\noptimizer step 需要通信\n\n\nZeRO-2\noptimizer state + gradients\ngradients 也不完整复制\n进一步降显存\nbackward 后通信更多\n\n\nZeRO-3\noptimizer state + gradients + parameters\nparameters 也分片\n单卡显存下降最多\nforward/backward 前后频繁 AllGather\n\n\n\n这张表要抓住一个重点：ZeRO stage 越高，显存越省，但通信和实现复杂度越高。不是 stage 越高就越好，而是要看显存瓶颈是否值得用通信换。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#fsdp-的执行直觉",
+    "href": "ch/p5/30-fsdp-zero.html#fsdp-的执行直觉",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.4 FSDP 的执行直觉",
+    "text": "30.4 FSDP 的执行直觉\nFSDP 可以理解为在模型模块边界上做 state sharding。每个 rank 常驻自己负责的 parameter shard。需要计算某一段模块时，再临时 AllGather 出完整参数用于 forward 或 backward；计算完成后释放不需要常驻的完整参数。\n一个简化的生命周期是：\n常驻：每个 rank 保存 parameter shard\nforward 前：AllGather 当前模块完整 parameters\nforward：计算 activation\nforward 后：释放完整 parameters，只保留 shard\nbackward 前后：按需要再次聚合和切分\ngradient 同步：ReduceScatter 得到 gradient shard\noptimizer step：每个 rank 更新自己的 shard\n它像把一本大账本拆给多个人保管。每个人平时只拿自己的页；需要查某一章时，临时把这一章拼齐；查完再拆回去。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#fsdpzero-省的是显存不一定省时间",
+    "href": "ch/p5/30-fsdp-zero.html#fsdpzero-省的是显存不一定省时间",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.5 FSDP/ZeRO 省的是显存，不一定省时间",
+    "text": "30.5 FSDP/ZeRO 省的是显存，不一定省时间\nFSDP/ZeRO 的收益和代价可以放在同一张表里看。\n\n\n\n\n\n\n\n\n维度\n收益\n代价\n\n\n\n\n显存\n单卡常驻状态下降，可以训练更大模型\n通信缓冲和临时聚合仍会占显存\n\n\n通信\n分片让每次 rank 只持有部分状态\nAllGather、ReduceScatter 更频繁\n\n\ncheckpoint\n可以保存 sharded checkpoint\n保存、加载、合并、迁移更复杂\n\n\n拓扑\n单机或高速网络下效果更好\n跨慢网络容易被通信放大\n\n\n调参\n可以增大模型或 batch\n需要调 wrap 策略、prefetch、bucket、offload\n\n\n\n因此生产判断要非常直接：如果模型 DDP 能放下，且训练瓶颈不是显存，贸然切 FSDP/ZeRO 可能变慢。如果 DDP 放不下，FSDP/ZeRO 才是进入大模型训练的关键路径。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#sharded-checkpoint-的含义",
+    "href": "ch/p5/30-fsdp-zero.html#sharded-checkpoint-的含义",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.6 sharded checkpoint 的含义",
+    "text": "30.6 sharded checkpoint 的含义\n单卡或 DDP checkpoint 通常比较直观：保存完整 model state dict、optimizer state、scheduler 和 step。FSDP/ZeRO 下，状态被切成 shard，checkpoint 也可能是分片的。\n这会带来几个问题：\n\n恢复时需要知道 world size、rank 映射和 shard 元数据。\n从 8 卡恢复到 16 卡，可能需要 reshard。\n保存速度受存储和网络影响，所有 rank 同时写可能打爆对象存储或并行文件系统。\n推理导出可能需要把 sharded checkpoint 合并为完整 weights，或者导出为推理框架支持的格式。\n\n平台工程不能只问“checkpoint 文件有没有”。要问：\n这是 full checkpoint 还是 sharded checkpoint？\n能否跨 world size 恢复？\n是否包含 optimizer state？\n保存期间会不会长时间阻塞训练？\n失败后能否定位哪个 rank 的 shard 损坏？",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#offload-不是免费午餐",
+    "href": "ch/p5/30-fsdp-zero.html#offload-不是免费午餐",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.7 offload 不是免费午餐",
+    "text": "30.7 offload 不是免费午餐\nFSDP/ZeRO 常见扩展能力包括 CPU offload 或 NVMe offload，即把部分状态放到 CPU memory 或本地盘上。这能进一步降低 HBM 压力，但会引入数据搬运成本。\n判断 offload 是否合适，要看瓶颈：\n\n\n\n场景\noffload 可能有效吗\n\n\n\n\nHBM 放不下，但 PCIe/CPU memory 还够\n可能有效\n\n\n训练已经被 CPU 或 PCIe 拖慢\n可能更慢\n\n\n本地 NVMe 性能稳定且模型极大\n可作为容量兜底\n\n\n在线推理追求低延迟\n通常要非常谨慎\n\n\n\noffload 的本质是把显存压力转移到更慢的层级。它是容量工具，不是性能魔法。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#一个选择案例",
+    "href": "ch/p5/30-fsdp-zero.html#一个选择案例",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.8 一个选择案例",
+    "text": "30.8 一个选择案例\n假设你要训练一个 30B 模型：\n\n单卡 80GB 放不下完整训练状态。\n8 卡 DDP 仍然 OOM。\n数据加载很快，主要瓶颈是显存。\n机器内有 NVLink，跨节点有 RDMA。\n\n此时合理路线通常是：\n\n先确认混合精度、activation checkpointing 是否已经打开。\n用 FSDP 或 ZeRO-3 切 parameters、gradients、optimizer state。\n优先把强通信放在单机高速互联内。\n使用 sharded checkpoint，验证保存和恢复。\n观察 rank 级别的 AllGather、ReduceScatter 时间。\n\n如果换成一个 1B 模型，DDP 已经可以稳定训练，那么 FSDP/ZeRO 可能只是增加复杂度。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#平台需要提供什么",
+    "href": "ch/p5/30-fsdp-zero.html#平台需要提供什么",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.9 平台需要提供什么",
+    "text": "30.9 平台需要提供什么\nFSDP/ZeRO 对平台的要求比 DDP 更高：\n\n更稳定的高速互联，因为通信更频繁。\n更明确的拓扑放置，避免把强通信 shard 放到弱链路上。\n更可靠的 checkpoint 存储，支持大量分片并发读写。\n更细的失败定位，能知道是哪个 rank、哪个 shard、哪次 collective 出错。\n更清晰的恢复策略，明确是否允许改变 world size。\n更完整的资源描述，除了 GPU，还要考虑 CPU memory、本地 NVMe、网络。\n\n这也是 AI 平台工程和普通批任务平台的差异：任务不是“跑完一个容器”这么简单，而是在维护一个分布式训练状态机。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/30-fsdp-zero.html#本章小结",
+    "href": "ch/p5/30-fsdp-zero.html#本章小结",
+    "title": "30  FSDP 与 ZeRO",
+    "section": "30.10 本章小结",
+    "text": "30.10 本章小结\nFSDP 和 ZeRO 的一句话本质是：把训练状态切成 shard，用通信换显存。 它们适合模型或 optimizer state 太大、DDP 单卡放不下的场景。选型时要始终问：省下的显存是否值得新增的 AllGather、ReduceScatter、checkpoint 和拓扑复杂度。\n\n\n\n\n《Getting Started with Fully Sharded Data Parallel》. 不详. https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html.\n\n\n《ZeRO: Zero Redundancy Optimizer》. 不详. https://www.deepspeed.ai/tutorials/zero/.",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>FSDP 与 ZeRO</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html",
+    "href": "ch/p5/31-tensor-parallel.html",
+    "title": "31  Tensor Parallel",
+    "section": "",
+    "text": "31.1 本章要回答的问题\nData Parallel 是切数据，FSDP/ZeRO 是切训练状态。Tensor Parallel, 简称 TP, 切的是更细的东西：一层里面的 tensor 计算。\n当模型的一层太大，或者单个模型副本推理太慢时，可以把同一层的矩阵乘、attention head 或 MLP 计算切到多张 GPU 上。PyTorch Tensor Parallel 文档把 TP 描述为在模型层内部切分模块或参数的并行方式 (《Tensor Parallelism》, 不详)。Megatron-LM 则是大模型张量并行和模型并行的重要代表工作 (Shoeybi 等 2019)。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#本章要回答的问题",
+    "href": "ch/p5/31-tensor-parallel.html#本章要回答的问题",
+    "title": "31  Tensor Parallel",
+    "section": "",
+    "text": "Matrix Split\n      Tensor Parallel：切的是一层里的矩阵，不是切请求\n    \n    原创矩阵图；概念依据 PyTorch Tensor Parallel 与 Megatron-LM。\n  \n\n  \n    \n      X\n      batch x hidden\n    \n\n    x\n\n    \n      W0GPU 0\n      W1GPU 1\n      W2GPU 2\n    \n\n    =\n\n    \n      Y0局部输出\n      Y1局部输出\n      Y2局部输出\n    \n\n    \n      通信边界\n      AllGather 或 AllReduce 把局部结果拼成下一层需要的形状",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#为什么要切一层",
+    "href": "ch/p5/31-tensor-parallel.html#为什么要切一层",
+    "title": "31  Tensor Parallel",
+    "section": "31.2 为什么要切一层",
+    "text": "31.2 为什么要切一层\nTransformer 里每一层都有 attention 和 MLP，大量计算可以归结为矩阵乘。模型越大，单层 weight matrix 越大，hidden size 越大，attention head 越多。\n如果一层的 weights 或中间结果单卡放不下，或者单卡处理这一层太慢，就需要把层内计算拆开。TP 的直觉是：\n一个大矩阵乘：\n  X @ W\n\n切成多个局部矩阵乘：\n  GPU 0: X @ W0\n  GPU 1: X @ W1\n  GPU 2: X @ W2\n\n再通过通信得到完整输出。\n这和 DDP 完全不同。DDP 中每个 rank 都有完整层，处理不同数据；TP 中多个 rank 合作计算同一层，通常处理同一批数据的不同 tensor 分片。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#列切行切和-head-切",
+    "href": "ch/p5/31-tensor-parallel.html#列切行切和-head-切",
+    "title": "31  Tensor Parallel",
+    "section": "31.3 列切、行切和 head 切",
+    "text": "31.3 列切、行切和 head 切\nTP 常见切法包括：\n\n\n\n\n\n\n\n\n切法\n直觉\n通信特点\n\n\n\n\nColumn Parallel\n按输出维度切 weight matrix\n每张卡产生一部分输出，后面可能需要 AllGather\n\n\nRow Parallel\n按输入维度切 weight matrix\n每张卡产生局部和，通常需要 AllReduce\n\n\nAttention Head Parallel\n不同 GPU 负责不同 attention head\nhead 之间相对独立，但后续投影可能通信\n\n\n\n不用一开始记公式，先抓住本质：TP 把一层拆成多个局部算子，局部结果必须在某些边界上重新合并。合并就是通信。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#tp-为什么强依赖拓扑",
+    "href": "ch/p5/31-tensor-parallel.html#tp-为什么强依赖拓扑",
+    "title": "31  Tensor Parallel",
+    "section": "31.4 TP 为什么强依赖拓扑",
+    "text": "31.4 TP 为什么强依赖拓扑\nTP 的通信发生在层内部。Transformer 有很多层，每层 forward 和 backward 都可能通信。和 DDP 相比，TP 的通信频率更高。\n\n\n\n\n\n\n\n\n策略\n通信发生位置\n拓扑敏感度\n\n\n\n\nDDP\nbackward gradients 同步，通常每个 step 多次 bucket 通信\n中到高\n\n\nFSDP/ZeRO\nmodule 前后聚合和切分状态\n高\n\n\nTensor Parallel\n层内矩阵计算边界\n很高\n\n\n\n这就是为什么 TP 通常优先放在同一节点的 NVLink/NVSwitch 内。跨节点做 TP 不是绝对不能做，但如果链路慢，层内通信会反复惩罚每个 token、每个 step。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#tp-在训练和推理中的差异",
+    "href": "ch/p5/31-tensor-parallel.html#tp-在训练和推理中的差异",
+    "title": "31  Tensor Parallel",
+    "section": "31.5 TP 在训练和推理中的差异",
+    "text": "31.5 TP 在训练和推理中的差异\n训练 TP 要处理 forward、backward、gradient 和 optimizer。它经常和 DDP、FSDP、Pipeline Parallel 组合，形成 2D/3D parallelism。\n推理 TP 更常见于大模型服务：单张 GPU 放不下完整模型，或者单副本 decode 太慢，就把一个模型实例切到多张 GPU。vLLM 的分布式 serving 支持 tensor parallel size 等配置，用于把模型部署到多 GPU 上 (《vLLM Serve CLI and Parallel Configuration》, 不详)。\n推理 TP 的关键不是只有吞吐，还包括：\n\n首 token 延迟是否变差。\nTP 通信是否拉高每 token 时间。\nKV Cache 是否也要按 TP 组管理。\n单副本多卡占用是否降低了集群可调度性。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#tp-和-fsdpzero-的区别",
+    "href": "ch/p5/31-tensor-parallel.html#tp-和-fsdpzero-的区别",
+    "title": "31  Tensor Parallel",
+    "section": "31.6 TP 和 FSDP/ZeRO 的区别",
+    "text": "31.6 TP 和 FSDP/ZeRO 的区别\n二者都可能让大模型跑起来，但切法不同。\n\n\n\n维度\nFSDP / ZeRO\nTensor Parallel\n\n\n\n\n切分对象\n训练状态 shard\n层内 tensor / parameter 维度\n\n\n主要目标\n降低训练状态显存\n让单层计算和模型副本跨多卡\n\n\n通信位置\nmodule 边界、状态聚合和切分\n层内部，频率更高\n\n\n推理是否常用\nFSDP 主要用于训练\nTP 是大模型推理常用手段\n\n\n拓扑要求\n高\n很高\n\n\n\n简单说：FSDP/ZeRO 更像“账本分片”，TP 更像“同一台机器的多个车间同时加工一个零件”。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#一个放置案例",
+    "href": "ch/p5/31-tensor-parallel.html#一个放置案例",
+    "title": "31  Tensor Parallel",
+    "section": "31.7 一个放置案例",
+    "text": "31.7 一个放置案例\n假设一个 LLM 推理服务需要 tensor_parallel_size=8。你有两种放置方式：\n\n\n\n\n\n\n\n\n放置方式\n看起来\n实际影响\n\n\n\n\n单机 8 卡，NVSwitch\n8 张 GPU 都在同一高速互联域\nTP 通信路径短，适合层内通信\n\n\n4 台机器各 2 卡\n也是 8 张 GPU\n层内通信跨节点，decode 每步都可能被网络拖慢\n\n\n\n对调度器来说，这两种都满足“8 张 GPU”。对 TP 来说，它们完全不是同一种资源。TP 把拓扑从硬件细节变成了应用正确性和性能要求。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#平台需要表达-tp-组",
+    "href": "ch/p5/31-tensor-parallel.html#平台需要表达-tp-组",
+    "title": "31  Tensor Parallel",
+    "section": "31.8 平台需要表达 TP 组",
+    "text": "31.8 平台需要表达 TP 组\nTP 不是随便挑几张空 GPU。平台需要知道：\n\n哪些 GPU 属于同一个 TP group。\nTP group 内 GPU 是否有高速互联。\nTP group 是否跨 NUMA 或跨节点。\n推理副本是否需要独占整组 GPU。\n扩缩容时是否保持完整 TP group。\n监控指标是否按 group 聚合，而不是只看单卡。\n\n这为后面 Kubernetes 调度打下基础：GPU 资源不能只用整数表达，还要表达拓扑和成组约束。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/31-tensor-parallel.html#本章小结",
+    "href": "ch/p5/31-tensor-parallel.html#本章小结",
+    "title": "31  Tensor Parallel",
+    "section": "31.9 本章小结",
+    "text": "31.9 本章小结\nTensor Parallel 的一句话本质是：把同一层的 tensor 计算切给多张 GPU，用层内通信拼回结果。 它适合单层太大、单副本太慢或大模型推理需要多卡承载的场景。TP 的通信频率高，所以拓扑比 GPU 数量本身更重要。\n\n\n\n\nShoeybi, Mohammad, Mostofa Patwary, Raul Puri, Patrick LeGresley, Jared Casper, 和 Bryan Catanzaro. 2019. 《Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism》. arXiv preprint arXiv:1909.08053.\n\n\n《Tensor Parallelism》. 不详. https://docs.pytorch.org/tutorials/intermediate/TP_tutorial.html.\n\n\n《vLLM Serve CLI and Parallel Configuration》. 不详. https://docs.vllm.ai/en/latest/cli/serve/.",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Tensor Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html",
+    "href": "ch/p5/32-pipeline-parallel.html",
+    "title": "32  Pipeline Parallel",
+    "section": "",
+    "text": "32.1 本章要回答的问题\nPipeline Parallel, 简称 PP, 切的是模型层。它把一个深模型拆成多个 stage，每个 stage 放到不同 GPU 或节点上。输入先经过 stage 1，再传给 stage 2，最后到 stage N。\nPyTorch Pipeline Parallel 教程把 pipeline parallelism 用于把模型按层切分到多个设备，并通过 micro-batch 让多个 stage 尽量同时工作 (《Getting Started with Distributed Pipeline Parallelism》, 不详)。直觉上，它像一条生产流水线：前段加工完半成品，交给下一段继续加工。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#本章要回答的问题",
+    "href": "ch/p5/32-pipeline-parallel.html#本章要回答的问题",
+    "title": "32  Pipeline Parallel",
+    "section": "",
+    "text": "Pipeline Timeline\n      Pipeline Parallel：micro-batch 用来填满 stage 时间轴\n    \n    原创时间轴图；概念依据 PyTorch Pipeline Parallel。\n  \n\n  \n    \n      \n      t1\n      t2\n      t3\n      t4\n      t5\n      t6\n\n      Stage 0\n      MB1\n      MB2\n      MB3\n      MB4\n      bubble\n      bubble\n\n      Stage 1\n      bubble\n      MB1\n      MB2\n      MB3\n      MB4\n      bubble\n\n      Stage 2\n      bubble\n      bubble\n      MB1\n      MB2\n      MB3\n      MB4\n    \n\n    \n      micro-batch把一个大 batch 切成小块，让 stage 可以重叠工作。\n      bubble流水线头尾的空转。micro-batch 少，空泡占比就高。\n      stage balance最慢 stage 决定整条流水线吞吐。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#pp-切的是什么",
+    "href": "ch/p5/32-pipeline-parallel.html#pp-切的是什么",
+    "title": "32  Pipeline Parallel",
+    "section": "32.2 PP 切的是什么",
+    "text": "32.2 PP 切的是什么\n一个 Transformer 有很多层。PP 把这些层分段：\nStage 0: Layer 0-7\nStage 1: Layer 8-15\nStage 2: Layer 16-23\nStage 3: Layer 24-31\nforward 时，stage 0 计算 activation，发给 stage 1；stage 1 继续计算，再发给 stage 2。backward 时，gradient 反方向传回去。\nPP 解决的是两个问题：\n\n单卡放不下完整模型层。\n模型太深，希望让不同 layer stage 并行工作。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#micro-batch-和-pipeline-bubble",
+    "href": "ch/p5/32-pipeline-parallel.html#micro-batch-和-pipeline-bubble",
+    "title": "32  Pipeline Parallel",
+    "section": "32.3 micro-batch 和 pipeline bubble",
+    "text": "32.3 micro-batch 和 pipeline bubble\n如果只给流水线一个大 batch，stage 0 算完后 stage 1 才开始，其他 stage 大量时间都在等。为了让多个 stage 同时工作，需要把 batch 再切成多个 micro-batch。\n简化后可以这样看：\n时间片 1: Stage 0 处理 MB1\n时间片 2: Stage 0 处理 MB2, Stage 1 处理 MB1\n时间片 3: Stage 0 处理 MB3, Stage 1 处理 MB2, Stage 2 处理 MB1\n流水线刚开始和结束时，总有 stage 空着，这部分空闲叫 pipeline bubble。micro-batch 越少，bubble 占比越高；micro-batch 越多，调度更满，但 activation、通信和调度开销也可能增加。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#pp-的通信是什么",
+    "href": "ch/p5/32-pipeline-parallel.html#pp-的通信是什么",
+    "title": "32  Pipeline Parallel",
+    "section": "32.4 PP 的通信是什么",
+    "text": "32.4 PP 的通信是什么\nPP 的通信不是 gradients AllReduce，也不是层内矩阵 AllGather。它主要传递：\n\nforward 方向的 activation。\nbackward 方向的 activation gradient。\n\n这类通信发生在相邻 stage 之间。它不像 TP 那样每层内部频繁同步，但 stage 切分不好时，activation 传输也会成为瓶颈。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#stage-均衡比想象中重要",
+    "href": "ch/p5/32-pipeline-parallel.html#stage-均衡比想象中重要",
+    "title": "32  Pipeline Parallel",
+    "section": "32.5 stage 均衡比想象中重要",
+    "text": "32.5 stage 均衡比想象中重要\nPP 的吞吐由最慢 stage 决定。如果 stage 0 放了 4 层，stage 1 放了 12 层，stage 1 就会成为瓶颈。其他 stage 计算完后只能等它。\nstage 不均衡可能来自：\n\n层数不均。\n某些层更重，例如 attention 或 MLP 维度更大。\n某些 stage activation 更大，通信更慢。\n某些 GPU 型号、温度、功耗或网络路径不同。\ncheckpoint 或 logging 集中在某个 stage。\n\n所以 PP 切分不是平均分层那么简单，而是要按计算、显存和通信一起切。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#f1b-的直觉",
+    "href": "ch/p5/32-pipeline-parallel.html#f1b-的直觉",
+    "title": "32  Pipeline Parallel",
+    "section": "32.6 1F1B 的直觉",
+    "text": "32.6 1F1B 的直觉\n训练 pipeline 常见调度会让一个 stage 交替执行 forward 和 backward，例如 1F1B, 即 one-forward-one-backward。它的目标是减少 activation 常驻时间，并让 stage 更持续地工作。\n不用一开始陷入调度细节。记住两个原则：\n\nmicro-batch 用来填流水线。\n调度策略用来减少等待和显存压力。\n\n如果 pipeline bubble 大，GPU 利用率低，可能不是 GPU 不够，而是 micro-batch、stage 切分和调度策略没有配好。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#pptpfsdp-可以组合",
+    "href": "ch/p5/32-pipeline-parallel.html#pptpfsdp-可以组合",
+    "title": "32  Pipeline Parallel",
+    "section": "32.7 PP、TP、FSDP 可以组合",
+    "text": "32.7 PP、TP、FSDP 可以组合\n大模型训练常常不是只用一种并行策略：\n\n\n\n组合\n直觉\n\n\n\n\nPP + TP\n每个 stage 内再做 tensor parallel，承载更大的层\n\n\nPP + DDP\n多条 pipeline 处理不同数据 shard，提高吞吐\n\n\nPP + FSDP\nstage 内训练状态再分片，降低显存\n\n\nPP + activation checkpointing\n少存 activation，用重算换显存\n\n\n\n这就是所谓 3D parallelism 的来源：Data Parallel、Tensor Parallel、Pipeline Parallel 从不同维度切模型和数据。平台工程最终要能表达这些组关系，而不只是“申请 N 张 GPU”。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#推理中是否需要-pp",
+    "href": "ch/p5/32-pipeline-parallel.html#推理中是否需要-pp",
+    "title": "32  Pipeline Parallel",
+    "section": "32.8 推理中是否需要 PP",
+    "text": "32.8 推理中是否需要 PP\n推理也可以使用 PP，尤其当模型层太多或单卡放不下时。但 LLM 在线推理有逐 token decode，pipeline stage 之间的串行依赖会影响 latency。对于低延迟交互式服务，TP 往往比 PP 更常见；对于超大模型或离线批推理，PP 仍然有价值。\n推理 PP 要特别关注：\n\nstage 间 activation 传输是否影响 TPOT。\n长短请求混在一起时，pipeline 是否被长请求拖住。\nprefill 和 decode 是否适合放在同一种 pipeline 策略下。\nstage 失败时，流式请求如何恢复或失败返回。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#平台需要表达-stage",
+    "href": "ch/p5/32-pipeline-parallel.html#平台需要表达-stage",
+    "title": "32  Pipeline Parallel",
+    "section": "32.9 平台需要表达 stage",
+    "text": "32.9 平台需要表达 stage\nPP 给平台带来的是 stage 语义：\n\n哪些 rank 属于同一条 pipeline。\n每个 stage 需要多少 GPU、显存、CPU 和网络。\nstage 间是否必须靠近放置。\nstage 不均衡时如何观测和告警。\n重启时是否整条 pipeline 一起重启。\ncheckpoint 是否按 stage 和 shard 保存。\n\n如果平台只看到一堆 Pod，就很难知道哪个 Pod 是 stage 0，哪个是 stage 3，更难判断为什么整条 pipeline 吞吐低。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#一个排障案例",
+    "href": "ch/p5/32-pipeline-parallel.html#一个排障案例",
+    "title": "32  Pipeline Parallel",
+    "section": "32.10 一个排障案例",
+    "text": "32.10 一个排障案例\n现象：4-stage PP 训练中，GPU 0 利用率高，GPU 1 和 GPU 2 中等，GPU 3 经常空等。\n可能原因：\n\n\n\n线索\n解释\n\n\n\n\nstage 0 时间最长\n前几层或数据预处理集中在 stage 0\n\n\nstage 3 等待多\n上游 activation 供给不稳定\n\n\nmicro-batch 数少\npipeline bubble 大\n\n\nstage 之间网络慢\nactivation 传输拖慢\n\n\ncheckpoint 在最后 stage\n保存时最后 stage 阻塞\n\n\n\n排障思路不是“把 GPU 加倍”，而是拆 stage timeline，看每个 stage 的 compute、send、recv、wait 和 checkpoint 时间。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/32-pipeline-parallel.html#本章小结",
+    "href": "ch/p5/32-pipeline-parallel.html#本章小结",
+    "title": "32  Pipeline Parallel",
+    "section": "32.11 本章小结",
+    "text": "32.11 本章小结\nPipeline Parallel 的一句话本质是：把模型层切成 stage，用 micro-batch 填满流水线。 它适合模型太深、单卡放不下或需要多阶段协同计算的场景。PP 的关键问题是 bubble、stage 均衡、activation 通信和故障恢复。\n\n\n\n\n《Getting Started with Distributed Pipeline Parallelism》. 不详. https://docs.pytorch.org/tutorials/intermediate/pipelining_tutorial.html.",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>32</span>  <span class='chapter-title'>Pipeline Parallel</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html",
+    "href": "ch/p5/33-distributed-inference.html",
+    "title": "33  分布式推理",
+    "section": "",
+    "text": "33.1 本章要回答的问题\n训练分布式围绕 global step；推理分布式围绕在线请求。它们都用 GPU 和通信，但目标不同。\n训练关心的是 step time、吞吐、收敛和 checkpoint；推理关心的是 TTFT、TPOT、P95/P99、吞吐、可用性、成本和用户体感。LLM 推理还要管理 KV Cache、continuous batching、长上下文和流式返回。\nvLLM 的 serve CLI 和 ParallelConfig 提供了 tensor parallel、pipeline parallel、data parallel 等多 GPU 服务相关配置 (《vLLM Serve CLI and Parallel Configuration》, 不详)。同时，vLLM 也有 disaggregated prefill 示例，把 prefill 和 decode 作为可拆分阶段来组织 (《vLLM Disaggregated Prefill Example》, 不详)。本章从系统本质解释这些策略。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#本章要回答的问题",
+    "href": "ch/p5/33-distributed-inference.html#本章要回答的问题",
+    "title": "33  分布式推理",
+    "section": "",
+    "text": "Serving Architecture\n      分布式推理：路由必须看请求、模型切分和 KV Cache\n    \n    原创架构图；概念依据 vLLM ParallelConfig 与 disaggregated prefill。\n  \n\n  \n    \n      Requests\n      短问答、长上下文、离线批量\n    \n    \n      Gateway / Router\n      按 SLA、队列、KV Cache 水位、TP group 拓扑决策\n      \n      \n    \n\n    \n      Replica Pool\n      复制模型副本，扩展总吞吐\n      R0R1R2\n    \n\n    \n      TP Group\n      一个模型副本跨多张 GPU\n      GPU0GPU1GPU2GPU3\n    \n\n    \n      Prefill / Decode\n      长 prompt 和逐 token 生成拆成不同阶段\n      prefillKVdecode\n    \n\n    \n      State\n      KV Cache、prefix cache、active sequences、model version",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#推理扩展的三条路线",
+    "href": "ch/p5/33-distributed-inference.html#推理扩展的三条路线",
+    "title": "33  分布式推理",
+    "section": "33.2 推理扩展的三条路线",
+    "text": "33.2 推理扩展的三条路线\n分布式推理先分清三件事。\n\n\n\n\n\n\n\n\n\n路线\n切的对象\n适合解决\n主要难点\n\n\n\n\n多副本\n请求流量\n总 QPS 不够、需要高可用\n路由、冷启动、版本一致性、负载均衡\n\n\n模型并行\n单个模型副本\n模型太大、单副本太慢\nTP/PP 通信、拓扑、成组调度\n\n\n阶段拆分\nprefill/decode 或 embedding/rerank/generate\n不同阶段资源形态不同\nKV Cache 传递、队列协调、SLA 拆解\n\n\n\n多副本像开多个服务窗口；模型并行像多个人一起服务同一个窗口；阶段拆分像把“接单、加工、出货”拆成不同工位。三者可以组合，但不能混为一谈。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#多副本最直观但不总够",
+    "href": "ch/p5/33-distributed-inference.html#多副本最直观但不总够",
+    "title": "33  分布式推理",
+    "section": "33.3 多副本：最直观，但不总够",
+    "text": "33.3 多副本：最直观，但不总够\n最简单的扩展是多跑几个模型副本：\nGateway -&gt; Replica A\n        -&gt; Replica B\n        -&gt; Replica C\n它适合模型单副本能放下、单副本延迟可接受、只是总流量不够的场景。平台可以用常规服务治理能力做负载均衡、健康检查、灰度和回滚。\n但 LLM 推理里，多副本会遇到新的约束：\n\n每个副本都要加载一份 weights，显存成本高。\n长上下文请求会占用大量 KV Cache。\ncontinuous batching 让副本内部排队状态变得重要。\n冷启动要下载和加载大模型，扩容不是秒级完成。\n路由如果不看队列和 KV Cache，只看连接数，可能负载不均。\n\n所以推理副本不是普通 Web 服务副本。它的容量由 weights、KV Cache、batch 策略和请求形态共同决定。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#模型并行一个副本跨多张-gpu",
+    "href": "ch/p5/33-distributed-inference.html#模型并行一个副本跨多张-gpu",
+    "title": "33  分布式推理",
+    "section": "33.4 模型并行：一个副本跨多张 GPU",
+    "text": "33.4 模型并行：一个副本跨多张 GPU\n当单张 GPU 放不下模型，或者单副本 decode 太慢，可以用 Tensor Parallel 或 Pipeline Parallel 把一个模型实例切到多张 GPU。\n推理 TP 的特点：\n\n多张 GPU 共同承载一个模型副本。\n每次 token decode 都可能发生层内通信。\nGPU 必须成组调度，少一张就不是完整副本。\n拓扑会直接影响 TPOT。\n\n推理 PP 的特点：\n\n不同层放到不同 stage。\nactivation 在 stage 之间流动。\n对超大模型或离线批推理有价值。\n在线低延迟场景要谨慎处理 pipeline bubble 和串行依赖。\n\n一句话区分：多副本扩的是服务窗口数量；TP/PP 扩的是一个窗口背后的协同能力。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#prefilldecode-分离",
+    "href": "ch/p5/33-distributed-inference.html#prefilldecode-分离",
+    "title": "33  分布式推理",
+    "section": "33.5 prefill/decode 分离",
+    "text": "33.5 prefill/decode 分离\nLLM 请求有两个阶段：\n\nprefill：把 prompt 一次性处理完，建立初始 KV Cache。长 prompt 时计算量大，更像大块矩阵计算。\ndecode：逐 token 生成，每一步读取历史 KV Cache，追加新 token。它更像小步循环，容易受 KV Cache 访问和 batch 形态影响。\n\n前面第三篇已经讲过 prefill 和 decode 的区别。本章把它放到分布式推理里看：两者资源形态不同，就可能拆到不同 GPU 池或不同服务层。\nprefill/decode 分离的收益可能包括：\n\n长 prompt 不阻塞短 decode。\nprefill worker 针对大块计算优化。\ndecode worker 针对低延迟和 KV Cache 访问优化。\n不同阶段独立扩缩容。\n\n但它的代价也很明确：\n\nKV Cache 或中间状态需要跨阶段传递。\n路由必须知道请求处于哪个阶段。\n队列策略变成多段队列。\n故障时要处理半完成请求。\n\n这不是“把服务拆两个 Deployment”那么简单，而是把一次请求的生命周期拆成多个状态转移。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#kv-cache-让路由变成状态问题",
+    "href": "ch/p5/33-distributed-inference.html#kv-cache-让路由变成状态问题",
+    "title": "33  分布式推理",
+    "section": "33.6 KV Cache 让路由变成状态问题",
+    "text": "33.6 KV Cache 让路由变成状态问题\n普通 HTTP 服务的路由通常可以无状态：请求来，分给任意健康副本。LLM 推理不总是这样。\n如果一个请求已经在某个副本上生成了 KV Cache，后续 decode 最好继续在能访问这份 KV Cache 的位置执行。否则要么重算 prompt，要么迁移 cache。vLLM 的 PagedAttention 和 Prefix Caching 都是在围绕 KV Cache 做更细粒度的显存管理和复用 (《vLLM Paged Attention》, 不详; 《vLLM Automatic Prefix Caching》, 不详)。\n因此分布式推理的路由要考虑：\n\n模型版本和 adapter。\n当前副本的队列长度。\n副本的 KV Cache 水位。\n请求上下文长度和 max tokens。\n是否命中 prefix cache。\n租户优先级和 SLA。\n\n路由如果只看 QPS 或连接数，就看不到真正的瓶颈。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#sla-约束下的分布式推理",
+    "href": "ch/p5/33-distributed-inference.html#sla-约束下的分布式推理",
+    "title": "33  分布式推理",
+    "section": "33.7 SLA 约束下的分布式推理",
+    "text": "33.7 SLA 约束下的分布式推理\n推理扩展必须用指标约束，不然容易只优化吞吐。\n\n\n\n\n\n\n\n\n指标\n说明\n分布式影响\n\n\n\n\nTTFT\n请求到首 token 的时间\n路由、排队、tokenizer、prefill、跨阶段传递\n\n\nTPOT\n后续每 token 平均时间\ndecode batch、TP 通信、KV Cache 访问\n\n\nP95/P99\n长尾延迟\n长请求、慢副本、队列策略、故障重试\n\n\ntokens/sec\n总生成吞吐\nbatching、GPU 利用率、模型并行\n\n\ncache hit rate\nprefix 或 KV 复用命中率\n路由和 prompt 结构\n\n\neviction / OOM\nKV Cache 容量压力\nbatch、上下文长度、并发\n\n\n\n推理平台最重要的设计原则是：吞吐优化必须受延迟目标约束。 为了 tokens/sec 把 batch 做大，却让 TTFT 和 P99 崩掉，是错误优化。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#一个容量规划例子",
+    "href": "ch/p5/33-distributed-inference.html#一个容量规划例子",
+    "title": "33  分布式推理",
+    "section": "33.8 一个容量规划例子",
+    "text": "33.8 一个容量规划例子\n假设一个 70B LLM 服务有三类请求：\n\n交互式短 prompt，要求 TTFT 低。\n长文档总结，prompt 很长。\n离线批量生成，对延迟不敏感。\n\n一种合理的分布式推理架构可能是：\n\n\n\n\n\n\n\n请求类型\n推荐策略\n\n\n\n\n交互式短 prompt\n独立低延迟副本池，较小 queue delay，限制 max tokens\n\n\n长文档总结\nprefill 能力更强的副本池，按上下文长度分桶\n\n\n离线批量生成\n大 batch 或离线队列，优先吞吐\n\n\n\n如果三类请求混在一个队列里，长 prompt 会拖慢短请求，离线批任务会挤占交互式 SLA。这不是模型问题，而是服务调度问题。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#平台需要提供什么",
+    "href": "ch/p5/33-distributed-inference.html#平台需要提供什么",
+    "title": "33  分布式推理",
+    "section": "33.9 平台需要提供什么",
+    "text": "33.9 平台需要提供什么\n分布式推理平台要表达的不只是 Deployment 副本数：\n\n模型副本的 GPU group，例如 TP size。\n模型版本、tokenizer、template、adapter 的一致性。\nKV Cache 资源水位。\n请求队列、优先级、取消和超时。\nprefill/decode 阶段拓扑。\n冷启动、warmup 和模型加载进度。\nSLA 指标和自动扩缩容信号。\n\n后面进入 KServe、vLLM、Ray Serve 和 Kubernetes 推理架构时，会把这些能力落到具体组件上。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/33-distributed-inference.html#本章小结",
+    "href": "ch/p5/33-distributed-inference.html#本章小结",
+    "title": "33  分布式推理",
+    "section": "33.10 本章小结",
+    "text": "33.10 本章小结\n分布式推理的本质是：在 SLA 约束下，把请求、模型副本、KV Cache 和计算阶段组织起来。 多副本解决总吞吐，TP/PP 解决单副本容量和速度，prefill/decode 分离解决不同阶段资源形态差异。推理系统不能只看 Pod 存活，要看请求生命周期和显存状态。\n\n\n\n\n《vLLM Automatic Prefix Caching》. 不详. https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/.\n\n\n《vLLM Disaggregated Prefill Example》. 不详. https://docs.vllm.ai/en/latest/examples/disaggregated/disaggregated_prefill/.\n\n\n《vLLM Paged Attention》. 不详. https://docs.vllm.ai/en/latest/design/paged_attention/.\n\n\n《vLLM Serve CLI and Parallel Configuration》. 不详. https://docs.vllm.ai/en/latest/cli/serve/.",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>33</span>  <span class='chapter-title'>分布式推理</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html",
+    "href": "ch/p5/34-straggler-fault.html",
+    "title": "34  慢节点、故障与恢复",
+    "section": "",
+    "text": "34.1 本章要回答的问题\n分布式 AI 最大的现实问题之一是：整体速度由最慢 rank 决定，整体可靠性受任意关键 rank 影响。\n单卡任务失败，通常是一个进程失败。分布式任务失败，可能是一个 rank OOM、一个网络连接超时、一个节点 GPU 降频、一个 shard checkpoint 写坏，最后表现为整个任务卡住或退出。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#本章要回答的问题",
+    "href": "ch/p5/34-straggler-fault.html#本章要回答的问题",
+    "title": "34  慢节点、故障与恢复",
+    "section": "",
+    "text": "Rank Timeline\n      慢节点：一个 rank 变慢，所有 rank 都在同步点等待\n    \n    原创排障图；用于把 straggler、barrier 和 gang restart 放到同一张图里看。\n  \n\n  \n    \n      \n        rank 0\n        compute\n        wait\n        AllReduce\n      \n      \n        rank 1\n        compute slow\n        sync\n        AllReduce\n      \n      \n        rank 2\n        compute\n        wait\n        AllReduce\n      \n      \n        rank 3\n        compute\n        wait\n        AllReduce\n      \n      同步点：最慢 rank 到达之前，其他 rank 都在等\n    \n\n    \n      观测rank step time、collective time、GPU/HBM、网络\n      定位数据慢、计算慢、网络慢、checkpoint 卡住\n      恢复checkpoint、gang restart、节点隔离、重新调度",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#什么是-straggler",
+    "href": "ch/p5/34-straggler-fault.html#什么是-straggler",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.2 什么是 straggler",
+    "text": "34.2 什么是 straggler\nstraggler 指拖慢整体进度的慢 rank、慢 stage、慢副本或慢节点。\n在 DDP 中，某个 rank backward 慢，其他 rank 会在 AllReduce 附近等待。在 PP 中，某个 stage 慢，后续 stage 拿不到 activation。在分布式推理中，某个 TP group 内一张 GPU 慢，整个模型副本的 decode 速度都会下降。\n分布式系统里，平均值经常掩盖问题。你看到平均 step time 是 1 秒，但可能 15 个 rank 是 800 ms，1 个 rank 是 1 秒，所有人都被它拖到 1 秒。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#慢节点从哪里来",
+    "href": "ch/p5/34-straggler-fault.html#慢节点从哪里来",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.3 慢节点从哪里来",
+    "text": "34.3 慢节点从哪里来\n常见来源可以按资源流拆开。\n\n\n\n\n\n\n\n\n来源\n表现\n例子\n\n\n\n\n数据慢\nrank 等 batch\n某个节点读取远端存储慢，tokenizer CPU 不够\n\n\n计算慢\n某 rank forward/backward 更慢\nGPU 降频、MIG 配置不同、输入长度不同\n\n\n显存问题\nOOM、频繁释放、cache eviction\nbatch 太大，KV Cache 逼近上限\n\n\n网络慢\ncollective 或 stage send/recv 变慢\nRDMA 配置异常、跨机架、拥塞\n\n\n存储慢\ncheckpoint 卡住\n多 rank 同时写对象存储\n\n\n代码路径不一致\n某些 rank 执行额外逻辑\nrank 0 logging 过重，验证逻辑放错位置\n\n\n\n这也是为什么本书前面先讲五条资源流：CPU、GPU、显存、网络、存储。straggler 往往不是“GPU 慢”这一个词能解释的。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#故障类型",
+    "href": "ch/p5/34-straggler-fault.html#故障类型",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.4 故障类型",
+    "text": "34.4 故障类型\n分布式 AI 常见故障包括：\n\n\n\n故障\n表现\n影响\n\n\n\n\nrank 进程退出\n某个 worker crash\n训练通常整体失败或 hang\n\n\nGPU OOM\n某个 rank CUDA OOM\n可能导致 communicator 异常\n\n\nNCCL timeout\ncollective 长时间无响应\n多数 rank 等待，最终超时\n\n\n节点重启\n多个 rank 消失\n需要整组恢复\n\n\ncheckpoint 损坏\n恢复失败\n训练进度丢失或需要回滚\n\n\n推理副本半失败\n服务还活着但生成异常\nP99 变差，流式请求中断\n\n\n\n只看进程存活不够。很多问题不是“进程死了”，而是进程活着但不再有效推进。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#观测要到-rank-级别",
+    "href": "ch/p5/34-straggler-fault.html#观测要到-rank-级别",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.5 观测要到 rank 级别",
+    "text": "34.5 观测要到 rank 级别\n分布式排障需要把指标打到 rank、stage 或 replica group。\n\n\n\n指标\n用途\n\n\n\n\nper-rank step time\n找最慢 rank\n\n\nDataLoader time\n判断是否数据供给慢\n\n\nforward/backward time\n判断计算是否不均\n\n\ncollective time\n判断通信是否成为瓶颈\n\n\nGPU utilization / HBM usage\n判断计算和显存状态\n\n\nnetwork throughput / retransmit\n判断网络异常\n\n\ncheckpoint save/load time\n判断存储是否拖慢\n\n\ninference TTFT/TPOT by replica\n判断推理慢副本\n\n\n\n这些指标要能按 rank 关联到节点、GPU、网卡、Pod 和任务 ID。否则看到 NCCL timeout，也不知道是哪条链路、哪个节点、哪个 rank 引起的。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#恢复不是简单重启",
+    "href": "ch/p5/34-straggler-fault.html#恢复不是简单重启",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.6 恢复不是简单重启",
+    "text": "34.6 恢复不是简单重启\n普通服务重启后还能继续处理新请求。训练任务重启后，如果没有 checkpoint，可能丢失数小时甚至数天计算。\n训练恢复至少涉及：\n\nmodel parameters。\noptimizer state。\nscheduler state。\nglobal step。\nrandom state。\ndataset sampler state。\nsharded checkpoint 元数据。\n训练配置和代码版本。\n\n如果只保存 weights，通常只能用于推理或 fine-tune 起点，不等于可无缝恢复训练。长训练任务必须把 checkpoint 当成系统设计的一部分，而不是训练脚本最后的附属功能。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#gang-restart-为什么常见",
+    "href": "ch/p5/34-straggler-fault.html#gang-restart-为什么常见",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.7 gang restart 为什么常见",
+    "text": "34.7 gang restart 为什么常见\n很多分布式训练任务要求所有 rank 处于一致状态。某个 rank 失败后，其他 rank 未必能继续独自推进。最常见的恢复方式是整组停止，从最近 checkpoint 重新启动。\n这叫 gang restart 的直觉：\n一个 rank 失败\n-&gt; 整个 worker group 停止\n-&gt; 从一致 checkpoint 恢复\n-&gt; 所有 rank 重新 rendezvous\n-&gt; 继续训练\n它看起来粗暴，但比让剩余 rank 带着不一致状态继续跑更可靠。Elastic training 可以在某些场景动态改变 worker 数，但它有前提，并不是所有模型、数据管线和并行策略都天然支持。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#推理故障恢复的不同点",
+    "href": "ch/p5/34-straggler-fault.html#推理故障恢复的不同点",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.8 推理故障恢复的不同点",
+    "text": "34.8 推理故障恢复的不同点\n推理没有 global step，但有在线请求状态。尤其是流式 LLM 请求，故障可能发生在已经返回了一部分 token 之后。\n推理恢复要回答：\n\n客户端连接断了，runtime 是否释放 KV Cache？\n副本 OOM 后，队列里的请求是否重试？\n重试是否会导致重复生成或顺序变化？\nprefix cache 是否跨副本共享？\nprefill/decode 分离时，decode 失败是否要重跑 prefill？\n网关是否能把慢副本摘掉，而不是继续分流？\n\n训练故障关注“进度能不能恢复”；推理故障关注“请求能否按 SLA 完成或明确失败”。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#一个-nccl-timeout-案例",
+    "href": "ch/p5/34-straggler-fault.html#一个-nccl-timeout-案例",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.9 一个 NCCL timeout 案例",
+    "text": "34.9 一个 NCCL timeout 案例\n现象：多节点 DDP 训练运行数小时后卡住，日志出现 NCCL timeout。\n可能原因不是一个：\n\n\n\n方向\n检查\n\n\n\n\n慢 rank\n查看 timeout 前各 rank step time 是否分化\n\n\n网络\n查看 RDMA、网卡错误、跨节点链路、拥塞\n\n\n数据\n某个 rank 是否在 DataLoader 阻塞，导致没进入 collective\n\n\nOOM\n某个 rank 是否先 CUDA OOM，其他 rank 等它\n\n\ncheckpoint\ntimeout 是否总发生在保存点附近\n\n\n拓扑\n任务是否被调度到跨机架或弱链路节点\n\n\n\nNCCL timeout 是症状，不一定是根因。真正排障要把 rank timeline、节点拓扑和资源指标拼起来。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#平台治理能力",
+    "href": "ch/p5/34-straggler-fault.html#平台治理能力",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.10 平台治理能力",
+    "text": "34.10 平台治理能力\n为了让分布式 AI 在集群里稳定运行，平台需要：\n\ngang scheduling：成组调度，避免 rank 缺失。\ntopology-aware placement：根据并行策略选择 GPU 和节点。\nhealth check：区分进程存活和训练有效推进。\ncheckpoint policy：控制保存频率、保留策略、恢复路径。\nfailure domain：避免把关键 rank 都放在同一高风险节点或机架。\nquarantine：识别频繁出错或性能异常的节点。\npreemption policy：抢占前触发 checkpoint 或优雅终止。\nrank-level observability：让排障能定位到 rank、GPU、NIC 和存储路径。\n\n这些能力会在后面的 Kubernetes、调度与资源优化部分变成具体实现。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
+    "objectID": "ch/p5/34-straggler-fault.html#本章小结",
+    "href": "ch/p5/34-straggler-fault.html#本章小结",
+    "title": "34  慢节点、故障与恢复",
+    "section": "34.11 本章小结",
+    "text": "34.11 本章小结\n分布式 AI 的故障治理要记住两句话：性能由最慢 rank 决定，恢复由一致状态决定。 straggler 排障要拆资源流，故障恢复要依赖 checkpoint、gang restart、拓扑和 rank 级观测。理解这些，再看 K8s 上的 AI 任务部署，才知道平台真正要解决什么。",
+    "crumbs": [
+      "第五篇 分布式 AI",
+      "<span class='chapter-number'>34</span>  <span class='chapter-title'>慢节点、故障与恢复</span>"
+    ]
+  },
+  {
     "objectID": "ch/p6/35-platformization.html",
     "href": "ch/p6/35-platformization.html",
-    "title": "29  为什么 AI 任务需要平台化",
+    "title": "35  为什么 AI 任务需要平台化",
     "section": "",
-    "text": "29.1 本篇要回答的问题\n到这里，我们已经知道 AI 任务的计算、训练、推理、GPU 和分布式问题。接下来要问：为什么不能让每个团队自己写脚本、自己找机器、自己跑任务？",
+    "text": "35.1 本篇要回答的问题\n到这里，我们已经知道 AI 任务的计算、训练、推理、GPU 和分布式问题。接下来要问：为什么不能让每个团队自己写脚本、自己找机器、自己跑任务？",
     "crumbs": [
       "第六篇 AI 平台化",
-      "<span class='chapter-number'>29</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
+      "<span class='chapter-number'>35</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
     ]
   },
   {
     "objectID": "ch/p6/35-platformization.html#本篇要回答的问题",
     "href": "ch/p6/35-platformization.html#本篇要回答的问题",
-    "title": "29  为什么 AI 任务需要平台化",
+    "title": "35  为什么 AI 任务需要平台化",
     "section": "",
     "text": "AI 平台化的本质，是把训练和推理的共性能力沉淀为统一入口、任务抽象、资源治理、运行时标准和观测闭环。",
     "crumbs": [
       "第六篇 AI 平台化",
-      "<span class='chapter-number'>29</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
+      "<span class='chapter-number'>35</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
     ]
   },
   {
     "objectID": "ch/p6/35-platformization.html#平台要解决的共性问题",
     "href": "ch/p6/35-platformization.html#平台要解决的共性问题",
-    "title": "29  为什么 AI 任务需要平台化",
-    "section": "29.2 平台要解决的共性问题",
-    "text": "29.2 平台要解决的共性问题\n\n\n\n问题\n没有平台时\n平台化后\n\n\n\n\n任务提交\n各团队脚本不一致\n统一 CLI/API/Portal\n\n\n环境依赖\n镜像混乱、版本不可控\n标准镜像和依赖管理\n\n\n资源治理\n谁抢到算谁的\n队列、配额、优先级\n\n\n数据和模型\n路径散乱、版本不清\n数据/模型/产物治理\n\n\n失败恢复\n人工排障\ncheckpoint、重试、事件\n\n\n观测\n只能看日志\n指标、日志、事件、Profiler",
+    "title": "35  为什么 AI 任务需要平台化",
+    "section": "35.2 平台要解决的共性问题",
+    "text": "35.2 平台要解决的共性问题\n\n\n\n问题\n没有平台时\n平台化后\n\n\n\n\n任务提交\n各团队脚本不一致\n统一 CLI/API/Portal\n\n\n环境依赖\n镜像混乱、版本不可控\n标准镜像和依赖管理\n\n\n资源治理\n谁抢到算谁的\n队列、配额、优先级\n\n\n数据和模型\n路径散乱、版本不清\n数据/模型/产物治理\n\n\n失败恢复\n人工排障\ncheckpoint、重试、事件\n\n\n观测\n只能看日志\n指标、日志、事件、Profiler",
     "crumbs": [
       "第六篇 AI 平台化",
-      "<span class='chapter-number'>29</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
+      "<span class='chapter-number'>35</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
     ]
   },
   {
     "objectID": "ch/p6/35-platformization.html#平台不是遮蔽底层",
     "href": "ch/p6/35-platformization.html#平台不是遮蔽底层",
-    "title": "29  为什么 AI 任务需要平台化",
-    "section": "29.3 平台不是遮蔽底层",
-    "text": "29.3 平台不是遮蔽底层\n好的 AI 平台不是把底层细节全部藏起来，而是把关键约束显式化：\n\n训练任务需要多少 GPU，是否需要 gang。\n推理服务需要什么延迟目标和上下文长度。\n数据集在哪里，吞吐是否足够。\ncheckpoint 是否可恢复。\nGPU 拓扑是否影响性能。",
+    "title": "35  为什么 AI 任务需要平台化",
+    "section": "35.3 平台不是遮蔽底层",
+    "text": "35.3 平台不是遮蔽底层\n好的 AI 平台不是把底层细节全部藏起来，而是把关键约束显式化：\n\n训练任务需要多少 GPU，是否需要 gang。\n推理服务需要什么延迟目标和上下文长度。\n数据集在哪里，吞吐是否足够。\ncheckpoint 是否可恢复。\nGPU 拓扑是否影响性能。",
     "crumbs": [
       "第六篇 AI 平台化",
-      "<span class='chapter-number'>29</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
+      "<span class='chapter-number'>35</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
     ]
   },
   {
     "objectID": "ch/p6/35-platformization.html#本章小结",
     "href": "ch/p6/35-platformization.html#本章小结",
-    "title": "29  为什么 AI 任务需要平台化",
-    "section": "29.4 本章小结",
-    "text": "29.4 本章小结\n第六篇会把前面的技术问题转成平台能力清单，为后面的 Kubernetes、CRD、Operator、队列和调度系统做铺垫。",
+    "title": "35  为什么 AI 任务需要平台化",
+    "section": "35.4 本章小结",
+    "text": "35.4 本章小结\n第六篇会把前面的技术问题转成平台能力清单，为后面的 Kubernetes、CRD、Operator、队列和调度系统做铺垫。",
     "crumbs": [
       "第六篇 AI 平台化",
-      "<span class='chapter-number'>29</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
+      "<span class='chapter-number'>35</span>  <span class='chapter-title'>为什么 AI 任务需要平台化</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html",
     "href": "ch/p1/06-k8s.html",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
     "section": "",
-    "text": "30.1 本章要回答的问题\n前几章从 AI 工作负载本身出发，解释了计算、显存、数据、通信、训练、推理和调度难点。现在要把这些问题放回 Kubernetes。\nKubernetes 不直接理解“训练”“推理”“梯度同步”“KV Cache”这些概念。它理解的是 API 对象、控制器、调度器、Pod、Service、Volume 和指标。\n本章给出第七篇的开篇判断：",
+    "text": "36.1 本章要回答的问题\n前几章从 AI 工作负载本身出发，解释了计算、显存、数据、通信、训练、推理和调度难点。现在要把这些问题放回 Kubernetes。\nKubernetes 不直接理解“训练”“推理”“梯度同步”“KV Cache”这些概念。它理解的是 API 对象、控制器、调度器、Pod、Service、Volume 和指标。\n本章给出第七篇的开篇判断：",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#本章要回答的问题",
     "href": "ch/p1/06-k8s.html#本章要回答的问题",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
     "section": "",
     "text": "AI on Kubernetes 的核心，是把 AI 任务的生命周期和资源约束，翻译成 Kubernetes 可以声明、控制、调度、观测和治理的对象。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#kubernetes-看到什么",
     "href": "ch/p1/06-k8s.html#kubernetes-看到什么",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.2 Kubernetes 看到什么",
-    "text": "30.2 Kubernetes 看到什么\nKubernetes 的基本工作方式是声明式控制。用户提交期望状态，控制器不断观察实际状态，并尝试让实际状态接近期望状态。\n对 AI 平台来说，最重要的对象包括：\n\n\n\n\n\n\n\nKubernetes 对象\n在 AI 场景中的作用\n\n\n\n\nPod\n训练 worker、推理副本、Ray worker、数据处理进程\n\n\nJob\n一次性训练、批处理、离线任务\n\n\nDeployment\n在线推理服务副本\n\n\nStatefulSet\n需要稳定身份或存储的服务组件\n\n\nService\n推理服务发现、worker 互相发现、入口抽象\n\n\nPersistentVolumeClaim\n数据集、checkpoint、模型权重、缓存\n\n\nConfigMap / Secret\n配置、启动参数、凭证\n\n\nCustomResourceDefinition\nPyTorchJob、TFJob、VolcanoJob、RayJob、InferenceService 等扩展 API\n\n\nScheduler\n把 Pod 放到合适节点\n\n\nController / Operator\n把高层任务对象转化为底层 Pod、Service、PVC 等资源\n\n\n\n这些对象不是孤立工具。它们共同构成 AI 任务的控制回路。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.2 Kubernetes 看到什么",
+    "text": "36.2 Kubernetes 看到什么\nKubernetes 的基本工作方式是声明式控制。用户提交期望状态，控制器不断观察实际状态，并尝试让实际状态接近期望状态。\n对 AI 平台来说，最重要的对象包括：\n\n\n\n\n\n\n\nKubernetes 对象\n在 AI 场景中的作用\n\n\n\n\nPod\n训练 worker、推理副本、Ray worker、数据处理进程\n\n\nJob\n一次性训练、批处理、离线任务\n\n\nDeployment\n在线推理服务副本\n\n\nStatefulSet\n需要稳定身份或存储的服务组件\n\n\nService\n推理服务发现、worker 互相发现、入口抽象\n\n\nPersistentVolumeClaim\n数据集、checkpoint、模型权重、缓存\n\n\nConfigMap / Secret\n配置、启动参数、凭证\n\n\nCustomResourceDefinition\nPyTorchJob、TFJob、VolcanoJob、RayJob、InferenceService 等扩展 API\n\n\nScheduler\n把 Pod 放到合适节点\n\n\nController / Operator\n把高层任务对象转化为底层 Pod、Service、PVC 等资源\n\n\n\n这些对象不是孤立工具。它们共同构成 AI 任务的控制回路。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#ai-任务的-kubernetes-控制回路",
     "href": "ch/p1/06-k8s.html#ai-任务的-kubernetes-控制回路",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.3 AI 任务的 Kubernetes 控制回路",
-    "text": "30.3 AI 任务的 Kubernetes 控制回路\n\n\n\n\n\nflowchart TB\n  User[\"用户 / 平台 API\"] --&gt; CRD[\"AI 任务对象&lt;br/&gt;PyTorchJob / RayJob / InferenceService\"]\n  CRD --&gt; Operator[\"Operator / Controller\"]\n  Operator --&gt; Pod[\"Pods / Services / PVCs\"]\n  Pod --&gt; Scheduler[\"Scheduler / Batch Scheduler\"]\n  Scheduler --&gt; Node[\"GPU Nodes\"]\n  Node --&gt; Runtime[\"Training / Inference Runtime\"]\n  Runtime --&gt; Metrics[\"Metrics / Logs / Events\"]\n  Metrics --&gt; Operator\n  Metrics --&gt; User\n\n\n\n\n\n\n这个控制回路说明了 AI on Kubernetes 的分层：\n\nCRD 表达高层任务意图。\nOperator 把任务意图转成 Kubernetes 资源。\nScheduler 负责资源分配和节点选择。\nRuntime 在容器内执行训练或推理。\nMetrics 和 Events 把运行状态反馈给平台。\n\n如果其中任何一层缺失，平台就会退化成“提交 YAML 的脚本集合”。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.3 AI 任务的 Kubernetes 控制回路",
+    "text": "36.3 AI 任务的 Kubernetes 控制回路\n\n\n\n\n\nflowchart TB\n  User[\"用户 / 平台 API\"] --&gt; CRD[\"AI 任务对象&lt;br/&gt;PyTorchJob / RayJob / InferenceService\"]\n  CRD --&gt; Operator[\"Operator / Controller\"]\n  Operator --&gt; Pod[\"Pods / Services / PVCs\"]\n  Pod --&gt; Scheduler[\"Scheduler / Batch Scheduler\"]\n  Scheduler --&gt; Node[\"GPU Nodes\"]\n  Node --&gt; Runtime[\"Training / Inference Runtime\"]\n  Runtime --&gt; Metrics[\"Metrics / Logs / Events\"]\n  Metrics --&gt; Operator\n  Metrics --&gt; User\n\n\n\n\n\n\n这个控制回路说明了 AI on Kubernetes 的分层：\n\nCRD 表达高层任务意图。\nOperator 把任务意图转成 Kubernetes 资源。\nScheduler 负责资源分配和节点选择。\nRuntime 在容器内执行训练或推理。\nMetrics 和 Events 把运行状态反馈给平台。\n\n如果其中任何一层缺失，平台就会退化成“提交 YAML 的脚本集合”。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#pod最小运行单位但不是任务边界",
     "href": "ch/p1/06-k8s.html#pod最小运行单位但不是任务边界",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.4 Pod：最小运行单位，但不是任务边界",
-    "text": "30.4 Pod：最小运行单位，但不是任务边界\nPod 是 Kubernetes 调度和运行的基本单位。官方文档把 Pod 描述为一组共享运行上下文的容器；实际使用中，单容器 Pod 最常见。\nAI 任务里，一个 Pod 可能是：\n\n一个单卡训练进程。\n一个分布式训练 worker。\n一个 parameter server。\n一个 Ray worker。\n一个 vLLM 推理副本。\n一个 Triton model server。\n\n但 Pod 通常不是 AI 任务的完整边界。一个分布式训练任务可能包含多个 worker Pod；一个推理服务可能包含多个模型副本、router 和 autoscaler；一个 Ray 应用可能包含 head Pod 和多个 worker Pod。\n所以，平台不能只管理 Pod，还要管理 Pod 之间的关系。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.4 Pod：最小运行单位，但不是任务边界",
+    "text": "36.4 Pod：最小运行单位，但不是任务边界\nPod 是 Kubernetes 调度和运行的基本单位。官方文档把 Pod 描述为一组共享运行上下文的容器；实际使用中，单容器 Pod 最常见。\nAI 任务里，一个 Pod 可能是：\n\n一个单卡训练进程。\n一个分布式训练 worker。\n一个 parameter server。\n一个 Ray worker。\n一个 vLLM 推理副本。\n一个 Triton model server。\n\n但 Pod 通常不是 AI 任务的完整边界。一个分布式训练任务可能包含多个 worker Pod；一个推理服务可能包含多个模型副本、router 和 autoscaler；一个 Ray 应用可能包含 head Pod 和多个 worker Pod。\n所以，平台不能只管理 Pod，还要管理 Pod 之间的关系。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#job一次性任务的基础",
     "href": "ch/p1/06-k8s.html#job一次性任务的基础",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.5 Job：一次性任务的基础",
-    "text": "30.5 Job：一次性任务的基础\nKubernetes Job 的语义是运行一个任务直到完成。官方 Job 控制器会创建 Pod，并在 Pod 失败或被删除时根据策略创建新的 Pod。\n这很适合一类简单 AI 任务：\n\n单机单卡训练。\n离线 batch 推理。\n数据预处理。\n模型转换。\n小规模实验任务。\n\n但普通 Job 对复杂分布式训练不够。它不天然表达 master/worker 角色、rank、world size、最小可运行成员、训练框架启动方式或队列公平性。\n这就是 PyTorchJob、TFJob、MPIJob、VolcanoJob、RayJob 等 CRD 出现的原因。它们不是为了替代 Kubernetes，而是把 AI 任务的高层语义补进 Kubernetes API。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.5 Job：一次性任务的基础",
+    "text": "36.5 Job：一次性任务的基础\nKubernetes Job 的语义是运行一个任务直到完成。官方 Job 控制器会创建 Pod，并在 Pod 失败或被删除时根据策略创建新的 Pod。\n这很适合一类简单 AI 任务：\n\n单机单卡训练。\n离线 batch 推理。\n数据预处理。\n模型转换。\n小规模实验任务。\n\n但普通 Job 对复杂分布式训练不够。它不天然表达 master/worker 角色、rank、world size、最小可运行成员、训练框架启动方式或队列公平性。\n这就是 PyTorchJob、TFJob、MPIJob、VolcanoJob、RayJob 等 CRD 出现的原因。它们不是为了替代 Kubernetes，而是把 AI 任务的高层语义补进 Kubernetes API。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#crd-与-operator把专业知识放进控制面",
     "href": "ch/p1/06-k8s.html#crd-与-operator把专业知识放进控制面",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.6 CRD 与 Operator：把专业知识放进控制面",
-    "text": "30.6 CRD 与 Operator：把专业知识放进控制面\nCustomResourceDefinition 允许 Kubernetes 扩展新的 API 类型。Operator pattern 则把自定义资源和控制器结合起来，用控制器自动执行领域知识。\n在 AI 场景中，Operator 的价值是把“人知道但 Kubernetes 原生对象不知道”的知识自动化。\n例如：\n\nPyTorchJob Operator 知道如何创建 master 和 worker。\nTFJob Operator 知道 TensorFlow 的 chief、worker、PS 等角色。\nRay Operator 知道如何创建 Ray head 和 Ray worker。\nKServe Controller 知道如何把 InferenceService 转成模型服务相关资源。\nVolcano Controller 和 Scheduler 知道如何处理 VolcanoJob、PodGroup、Queue 等批任务语义。\n\n这就是 AI 平台从“脚本提交系统”走向“声明式平台”的关键。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.6 CRD 与 Operator：把专业知识放进控制面",
+    "text": "36.6 CRD 与 Operator：把专业知识放进控制面\nCustomResourceDefinition 允许 Kubernetes 扩展新的 API 类型。Operator pattern 则把自定义资源和控制器结合起来，用控制器自动执行领域知识。\n在 AI 场景中，Operator 的价值是把“人知道但 Kubernetes 原生对象不知道”的知识自动化。\n例如：\n\nPyTorchJob Operator 知道如何创建 master 和 worker。\nTFJob Operator 知道 TensorFlow 的 chief、worker、PS 等角色。\nRay Operator 知道如何创建 Ray head 和 Ray worker。\nKServe Controller 知道如何把 InferenceService 转成模型服务相关资源。\nVolcano Controller 和 Scheduler 知道如何处理 VolcanoJob、PodGroup、Queue 等批任务语义。\n\n这就是 AI 平台从“脚本提交系统”走向“声明式平台”的关键。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#service推理和分布式协同的入口",
     "href": "ch/p1/06-k8s.html#service推理和分布式协同的入口",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.7 Service：推理和分布式协同的入口",
-    "text": "30.7 Service：推理和分布式协同的入口\nService 在 Kubernetes 中提供稳定的服务发现和访问入口。对推理服务来说，它可以把请求路由到一组模型副本。对分布式训练来说，它也可能用于 worker 发现、master 地址暴露或控制面通信。\n但 Service 不解决所有推理问题。它解决的是网络入口和服务发现，不解决：\n\n模型加载。\nKV Cache 管理。\n请求动态 batching。\ntoken streaming。\n灰度发布。\n模型版本治理。\nGPU 显存调度。\n\n这些能力需要由推理运行时、模型服务平台、网关、控制器和观测系统共同完成。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.7 Service：推理和分布式协同的入口",
+    "text": "36.7 Service：推理和分布式协同的入口\nService 在 Kubernetes 中提供稳定的服务发现和访问入口。对推理服务来说，它可以把请求路由到一组模型副本。对分布式训练来说，它也可能用于 worker 发现、master 地址暴露或控制面通信。\n但 Service 不解决所有推理问题。它解决的是网络入口和服务发现，不解决：\n\n模型加载。\nKV Cache 管理。\n请求动态 batching。\ntoken streaming。\n灰度发布。\n模型版本治理。\nGPU 显存调度。\n\n这些能力需要由推理运行时、模型服务平台、网关、控制器和观测系统共同完成。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#volume数据checkpoint-和模型权重",
     "href": "ch/p1/06-k8s.html#volume数据checkpoint-和模型权重",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.8 Volume：数据、checkpoint 和模型权重",
-    "text": "30.8 Volume：数据、checkpoint 和模型权重\nAI 任务经常离不开持久化存储。\n训练需要读取数据集、写 checkpoint、保存日志和模型产物。推理需要加载模型权重，有时还需要缓存或挂载模型仓库。Kubernetes 通过 Volume、PersistentVolume 和 PersistentVolumeClaim 抽象存储。\n存储的关键不是“能不能挂载”，而是：\n\n吞吐能否喂饱 GPU。\n多个 worker 并发读取时是否成为瓶颈。\ncheckpoint 写入是否影响训练 step。\n模型加载是否导致推理冷启动过长。\n本地缓存和远端对象存储如何配合。\n\n存储慢，GPU 会空等；checkpoint 慢，训练会抖动；模型加载慢，推理扩容会变慢。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.8 Volume：数据、checkpoint 和模型权重",
+    "text": "36.8 Volume：数据、checkpoint 和模型权重\nAI 任务经常离不开持久化存储。\n训练需要读取数据集、写 checkpoint、保存日志和模型产物。推理需要加载模型权重，有时还需要缓存或挂载模型仓库。Kubernetes 通过 Volume、PersistentVolume 和 PersistentVolumeClaim 抽象存储。\n存储的关键不是“能不能挂载”，而是：\n\n吞吐能否喂饱 GPU。\n多个 worker 并发读取时是否成为瓶颈。\ncheckpoint 写入是否影响训练 step。\n模型加载是否导致推理冷启动过长。\n本地缓存和远端对象存储如何配合。\n\n存储慢，GPU 会空等；checkpoint 慢，训练会抖动；模型加载慢，推理扩容会变慢。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#scheduler资源分配入口",
     "href": "ch/p1/06-k8s.html#scheduler资源分配入口",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.9 Scheduler：资源分配入口",
-    "text": "30.9 Scheduler：资源分配入口\nKubernetes 默认调度器负责把未绑定节点的 Pod 分配到 Node。它会根据资源、约束和打分策略选择节点。\nAI 平台会在这个基础上叠加更多语义：\n\n通过节点标签表达 GPU 型号、拓扑、网络能力。\n通过 taint/toleration 隔离 GPU 节点池。\n通过 resource request 申请 GPU。\n通过自定义调度器或批调度器实现队列、gang 和公平性。\n通过 metrics 反馈真实运行状态。\n\n关键是：Scheduler 看到的是 Pod 级别的调度输入。如果训练或推理的高层语义没有被 CRD、Operator、队列系统或调度插件表达出来，调度器就无法凭空知道。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.9 Scheduler：资源分配入口",
+    "text": "36.9 Scheduler：资源分配入口\nKubernetes 默认调度器负责把未绑定节点的 Pod 分配到 Node。它会根据资源、约束和打分策略选择节点。\nAI 平台会在这个基础上叠加更多语义：\n\n通过节点标签表达 GPU 型号、拓扑、网络能力。\n通过 taint/toleration 隔离 GPU 节点池。\n通过 resource request 申请 GPU。\n通过自定义调度器或批调度器实现队列、gang 和公平性。\n通过 metrics 反馈真实运行状态。\n\n关键是：Scheduler 看到的是 Pod 级别的调度输入。如果训练或推理的高层语义没有被 CRD、Operator、队列系统或调度插件表达出来，调度器就无法凭空知道。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#ai-平台的分层模型",
     "href": "ch/p1/06-k8s.html#ai-平台的分层模型",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.10 AI 平台的分层模型",
-    "text": "30.10 AI 平台的分层模型\n可以把 AI on Kubernetes 平台分成六层：\n\n\n\n\n\n\n\n\n层次\n核心问题\n典型组件\n\n\n\n\n用户入口层\n用户如何提交训练和推理\nPortal、CLI、API、Notebook\n\n\n任务抽象层\n如何表达 AI 任务\nPyTorchJob、TFJob、RayJob、InferenceService\n\n\n控制器层\n如何创建和维护底层资源\nOperator、Controller\n\n\n调度层\n如何分配 GPU 和队列资源\nkube-scheduler、Volcano、Kueue、KAI Scheduler\n\n\n运行时层\n如何执行训练和推理\nPyTorch、TensorFlow、Ray、vLLM、Triton\n\n\n观测治理层\n如何看见、恢复和优化\nPrometheus、DCGM、日志、事件、Profiler\n\n\n\n这张表是后面全书的地图。看到任何一个新技术，先问它在哪一层，再问它解决哪一层的问题。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.10 AI 平台的分层模型",
+    "text": "36.10 AI 平台的分层模型\n可以把 AI on Kubernetes 平台分成六层：\n\n\n\n\n\n\n\n\n层次\n核心问题\n典型组件\n\n\n\n\n用户入口层\n用户如何提交训练和推理\nPortal、CLI、API、Notebook\n\n\n任务抽象层\n如何表达 AI 任务\nPyTorchJob、TFJob、RayJob、InferenceService\n\n\n控制器层\n如何创建和维护底层资源\nOperator、Controller\n\n\n调度层\n如何分配 GPU 和队列资源\nkube-scheduler、Volcano、Kueue、KAI Scheduler\n\n\n运行时层\n如何执行训练和推理\nPyTorch、TensorFlow、Ray、vLLM、Triton\n\n\n观测治理层\n如何看见、恢复和优化\nPrometheus、DCGM、日志、事件、Profiler\n\n\n\n这张表是后面全书的地图。看到任何一个新技术，先问它在哪一层，再问它解决哪一层的问题。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#常见误区",
     "href": "ch/p1/06-k8s.html#常见误区",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.11 常见误区",
-    "text": "30.11 常见误区\n误区一：有了 Kubernetes，就自然有了 AI 平台。\nKubernetes 提供通用控制面，但 AI 平台还需要任务抽象、训练/推理运行时、GPU 调度、模型治理和观测能力。\n误区二：CRD 越多，平台越强。\nCRD 的价值在于表达真实任务语义。如果只是换一种 YAML 写法，没有配套控制器、状态管理和调度语义，复杂度会高于收益。\n误区三：Service 就等于模型服务平台。\nService 只解决网络发现和访问入口。模型服务还需要模型加载、版本、运行时、扩缩容、灰度和指标。\n误区四：调度器可以自动理解训练任务。\n调度器只能根据输入做决策。训练任务的 gang、rank、拓扑、队列和恢复语义必须被显式表达。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.11 常见误区",
+    "text": "36.11 常见误区\n误区一：有了 Kubernetes，就自然有了 AI 平台。\nKubernetes 提供通用控制面，但 AI 平台还需要任务抽象、训练/推理运行时、GPU 调度、模型治理和观测能力。\n误区二：CRD 越多，平台越强。\nCRD 的价值在于表达真实任务语义。如果只是换一种 YAML 写法，没有配套控制器、状态管理和调度语义，复杂度会高于收益。\n误区三：Service 就等于模型服务平台。\nService 只解决网络发现和访问入口。模型服务还需要模型加载、版本、运行时、扩缩容、灰度和指标。\n误区四：调度器可以自动理解训练任务。\n调度器只能根据输入做决策。训练任务的 gang、rank、拓扑、队列和恢复语义必须被显式表达。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p1/06-k8s.html#本章小结",
     "href": "ch/p1/06-k8s.html#本章小结",
-    "title": "30  从 Kubernetes 视角重新理解 AI 任务",
-    "section": "30.12 本章小结",
-    "text": "30.12 本章小结\n读完本章，需要形成四个判断：\n\nKubernetes 是 AI 平台的承载层，不是 AI 平台本身。\nPod 是最小运行单位，但 AI 任务往往需要更高层的 CRD 和 Operator 表达。\nScheduler 只能根据已表达的资源和约束做决策，不能自动理解训练或推理语义。\n生产级 AI 平台必须把任务抽象、控制器、调度、运行时和观测治理连成闭环。\n\n到这里，我们开始把前面几篇建立的 AI workload、训练流程、推理流程、GPU 性能和平台化问题映射到 Kubernetes。后续章节会继续展开 CRD、Operator、训练任务架构、推理服务架构、队列、调度器和资源治理。",
+    "title": "36  从 Kubernetes 视角重新理解 AI 任务",
+    "section": "36.12 本章小结",
+    "text": "36.12 本章小结\n读完本章，需要形成四个判断：\n\nKubernetes 是 AI 平台的承载层，不是 AI 平台本身。\nPod 是最小运行单位，但 AI 任务往往需要更高层的 CRD 和 Operator 表达。\nScheduler 只能根据已表达的资源和约束做决策，不能自动理解训练或推理语义。\n生产级 AI 平台必须把任务抽象、控制器、调度、运行时和观测治理连成闭环。\n\n到这里，我们开始把前面几篇建立的 AI workload、训练流程、推理流程、GPU 性能和平台化问题映射到 Kubernetes。后续章节会继续展开 CRD、Operator、训练任务架构、推理服务架构、队列、调度器和资源治理。",
     "crumbs": [
       "第七篇 Kubernetes 基础架构",
-      "<span class='chapter-number'>30</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
+      "<span class='chapter-number'>36</span>  <span class='chapter-title'>从 Kubernetes 视角重新理解 AI 任务</span>"
     ]
   },
   {
     "objectID": "ch/p4/24-kubeflow-v1.html",
     "href": "ch/p4/24-kubeflow-v1.html",
-    "title": "31  Kubeflow Training Operator v1",
+    "title": "37  Kubeflow Training Operator v1",
     "section": "",
-    "text": "31.1 本质问题\nPyTorch 和 TensorFlow 本身解决的是模型训练逻辑，但它们不直接解决 Kubernetes 上的多角色任务编排问题。\n分布式训练至少需要回答以下问题：\nKubeflow Training Operator v1 的核心价值，是把不同训练框架的分布式启动方式表达成 Kubernetes 自定义资源。",
+    "text": "37.1 本质问题\nPyTorch 和 TensorFlow 本身解决的是模型训练逻辑，但它们不直接解决 Kubernetes 上的多角色任务编排问题。\n分布式训练至少需要回答以下问题：\nKubeflow Training Operator v1 的核心价值，是把不同训练框架的分布式启动方式表达成 Kubernetes 自定义资源。",
     "crumbs": [
       "第八篇 训练任务架构",
-      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
+      "<span class='chapter-number'>37</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
     ]
   },
   {
     "objectID": "ch/p4/24-kubeflow-v1.html#本质问题",
     "href": "ch/p4/24-kubeflow-v1.html#本质问题",
-    "title": "31  Kubeflow Training Operator v1",
+    "title": "37  Kubeflow Training Operator v1",
     "section": "",
     "text": "master 和 worker 如何启动？\n每个 worker 的 rank 如何确定？\nworld size 如何传入训练脚本？\n失败后整个训练任务如何处理？\n多个 Pod 是否需要一起被调度？",
     "crumbs": [
       "第八篇 训练任务架构",
-      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
+      "<span class='chapter-number'>37</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
     ]
   },
   {
     "objectID": "ch/p4/24-kubeflow-v1.html#常见-crd",
     "href": "ch/p4/24-kubeflow-v1.html#常见-crd",
-    "title": "31  Kubeflow Training Operator v1",
-    "section": "31.2 常见 CRD",
-    "text": "31.2 常见 CRD\n\n\n\nCRD\n适用场景\n核心角色\n\n\n\n\nPyTorchJob\nPyTorch 分布式训练\nMaster、Worker\n\n\nTFJob\nTensorFlow 分布式训练\nChief、Worker、PS、Evaluator\n\n\nMPIJob\nMPI / Horovod 等训练\nLauncher、Worker",
+    "title": "37  Kubeflow Training Operator v1",
+    "section": "37.2 常见 CRD",
+    "text": "37.2 常见 CRD\n\n\n\nCRD\n适用场景\n核心角色\n\n\n\n\nPyTorchJob\nPyTorch 分布式训练\nMaster、Worker\n\n\nTFJob\nTensorFlow 分布式训练\nChief、Worker、PS、Evaluator\n\n\nMPIJob\nMPI / Horovod 等训练\nLauncher、Worker",
     "crumbs": [
       "第八篇 训练任务架构",
-      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
+      "<span class='chapter-number'>37</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
     ]
   },
   {
     "objectID": "ch/p4/24-kubeflow-v1.html#所处层次",
     "href": "ch/p4/24-kubeflow-v1.html#所处层次",
-    "title": "31  Kubeflow Training Operator v1",
-    "section": "31.3 所处层次",
-    "text": "31.3 所处层次\n\n\n\n\n\nflowchart TB\n  Script[\"训练脚本\"] --&gt; Framework[\"PyTorch / TensorFlow\"]\n  Framework --&gt; CRD[\"PyTorchJob / TFJob / MPIJob\"]\n  CRD --&gt; Operator[\"Training Operator\"]\n  Operator --&gt; Pods[\"Kubernetes Pods\"]\n  Pods --&gt; Scheduler[\"Kubernetes Scheduler / Batch Scheduler\"]\n  Scheduler --&gt; Nodes[\"GPU Nodes\"]",
+    "title": "37  Kubeflow Training Operator v1",
+    "section": "37.3 所处层次",
+    "text": "37.3 所处层次\n\n\n\n\n\nflowchart TB\n  Script[\"训练脚本\"] --&gt; Framework[\"PyTorch / TensorFlow\"]\n  Framework --&gt; CRD[\"PyTorchJob / TFJob / MPIJob\"]\n  CRD --&gt; Operator[\"Training Operator\"]\n  Operator --&gt; Pods[\"Kubernetes Pods\"]\n  Pods --&gt; Scheduler[\"Kubernetes Scheduler / Batch Scheduler\"]\n  Scheduler --&gt; Nodes[\"GPU Nodes\"]",
     "crumbs": [
       "第八篇 训练任务架构",
-      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
+      "<span class='chapter-number'>37</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
     ]
   },
   {
     "objectID": "ch/p4/24-kubeflow-v1.html#关键判断",
     "href": "ch/p4/24-kubeflow-v1.html#关键判断",
-    "title": "31  Kubeflow Training Operator v1",
-    "section": "31.4 关键判断",
-    "text": "31.4 关键判断\nTraining Operator 不是训练框架，也不是调度器。它的职责是把“训练任务”转化成 Kubernetes 可管理的对象。\n调度公平性、队列、配额和 Gang Scheduling 通常需要由 Volcano、Kueue、KAI Scheduler 等调度系统补足。",
+    "title": "37  Kubeflow Training Operator v1",
+    "section": "37.4 关键判断",
+    "text": "37.4 关键判断\nTraining Operator 不是训练框架，也不是调度器。它的职责是把“训练任务”转化成 Kubernetes 可管理的对象。\n调度公平性、队列、配额和 Gang Scheduling 通常需要由 Volcano、Kueue、KAI Scheduler 等调度系统补足。",
     "crumbs": [
       "第八篇 训练任务架构",
-      "<span class='chapter-number'>31</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
+      "<span class='chapter-number'>37</span>  <span class='chapter-title'>Kubeflow Training Operator v1</span>"
     ]
   },
   {
     "objectID": "ch/p7/50-llm-runtime.html",
     "href": "ch/p7/50-llm-runtime.html",
-    "title": "32  vLLM 与 LLM 推理运行时",
+    "title": "38  vLLM 与 LLM 推理运行时",
     "section": "",
-    "text": "32.1 本质问题\nLLM 推理的主要矛盾不是“能不能把模型跑起来”，而是在有限显存中服务尽可能多的并发请求，同时控制首 token 延迟和持续生成速度。\n一个 LLM 请求通常分为两个阶段：",
+    "text": "38.1 本质问题\nLLM 推理的主要矛盾不是“能不能把模型跑起来”，而是在有限显存中服务尽可能多的并发请求，同时控制首 token 延迟和持续生成速度。\n一个 LLM 请求通常分为两个阶段：",
     "crumbs": [
       "第九篇 推理服务架构",
-      "<span class='chapter-number'>32</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
+      "<span class='chapter-number'>38</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
     ]
   },
   {
     "objectID": "ch/p7/50-llm-runtime.html#本质问题",
     "href": "ch/p7/50-llm-runtime.html#本质问题",
-    "title": "32  vLLM 与 LLM 推理运行时",
+    "title": "38  vLLM 与 LLM 推理运行时",
     "section": "",
     "text": "prefill：处理输入 prompt，计算初始 KV Cache。\ndecode：逐 token 生成输出，每一步都会读取已有 KV Cache。",
     "crumbs": [
       "第九篇 推理服务架构",
-      "<span class='chapter-number'>32</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
+      "<span class='chapter-number'>38</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
     ]
   },
   {
     "objectID": "ch/p7/50-llm-runtime.html#推理路径",
     "href": "ch/p7/50-llm-runtime.html#推理路径",
-    "title": "32  vLLM 与 LLM 推理运行时",
-    "section": "32.2 推理路径",
-    "text": "32.2 推理路径\n\n\n\n\n\nsequenceDiagram\n  participant Client as Client\n  participant Router as Router\n  participant Runtime as vLLM/Triton/TensorRT-LLM\n  participant GPU as GPU\n\n  Client-&gt;&gt;Router: Send prompt\n  Router-&gt;&gt;Runtime: Enqueue request\n  Runtime-&gt;&gt;GPU: Prefill\n  GPU--&gt;&gt;Runtime: KV Cache\n  loop Decode tokens\n    Runtime-&gt;&gt;GPU: Decode step\n    GPU--&gt;&gt;Runtime: Next token\n    Runtime--&gt;&gt;Client: Stream token\n  end",
+    "title": "38  vLLM 与 LLM 推理运行时",
+    "section": "38.2 推理路径",
+    "text": "38.2 推理路径\n\n\n\n\n\nsequenceDiagram\n  participant Client as Client\n  participant Router as Router\n  participant Runtime as vLLM/Triton/TensorRT-LLM\n  participant GPU as GPU\n\n  Client-&gt;&gt;Router: Send prompt\n  Router-&gt;&gt;Runtime: Enqueue request\n  Runtime-&gt;&gt;GPU: Prefill\n  GPU--&gt;&gt;Runtime: KV Cache\n  loop Decode tokens\n    Runtime-&gt;&gt;GPU: Decode step\n    GPU--&gt;&gt;Runtime: Next token\n    Runtime--&gt;&gt;Client: Stream token\n  end",
     "crumbs": [
       "第九篇 推理服务架构",
-      "<span class='chapter-number'>32</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
+      "<span class='chapter-number'>38</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
     ]
   },
   {
     "objectID": "ch/p7/50-llm-runtime.html#为什么需要专门的推理运行时",
     "href": "ch/p7/50-llm-runtime.html#为什么需要专门的推理运行时",
-    "title": "32  vLLM 与 LLM 推理运行时",
-    "section": "32.3 为什么需要专门的推理运行时",
-    "text": "32.3 为什么需要专门的推理运行时\n普通 Web 服务的 batch 是请求聚合。LLM 推理的 batch 还要处理不同请求长度、不同生成进度、KV Cache 显存管理和 token 级调度。\nvLLM、Triton、TensorRT-LLM 等运行时的核心价值，是在模型计算、显存管理、请求调度和 GPU kernel 执行之间做系统级优化。",
+    "title": "38  vLLM 与 LLM 推理运行时",
+    "section": "38.3 为什么需要专门的推理运行时",
+    "text": "38.3 为什么需要专门的推理运行时\n普通 Web 服务的 batch 是请求聚合。LLM 推理的 batch 还要处理不同请求长度、不同生成进度、KV Cache 显存管理和 token 级调度。\nvLLM、Triton、TensorRT-LLM 等运行时的核心价值，是在模型计算、显存管理、请求调度和 GPU kernel 执行之间做系统级优化。",
     "crumbs": [
       "第九篇 推理服务架构",
-      "<span class='chapter-number'>32</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
+      "<span class='chapter-number'>38</span>  <span class='chapter-title'>vLLM 与 LLM 推理运行时</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html",
     "href": "ch/p1/05-scheduling.html",
-    "title": "33  为什么 AI 任务难调度",
+    "title": "39  为什么 AI 任务难调度",
     "section": "",
-    "text": "33.1 本章要回答的问题\n如果只看 Kubernetes API，AI 任务也只是 Pod、Job、Deployment 或自定义资源。既然 Kubernetes 已经有调度器，为什么还需要 Volcano、Kueue、KAI Scheduler、Gang Scheduling、Fair Share、DRF、Backfilling 和拓扑感知？\n答案很直接：\n本章不先讲具体调度器，而是先讲这些调度能力背后的系统压力。",
+    "text": "39.1 本章要回答的问题\n如果只看 Kubernetes API，AI 任务也只是 Pod、Job、Deployment 或自定义资源。既然 Kubernetes 已经有调度器，为什么还需要 Volcano、Kueue、KAI Scheduler、Gang Scheduling、Fair Share、DRF、Backfilling 和拓扑感知？\n答案很直接：\n本章不先讲具体调度器，而是先讲这些调度能力背后的系统压力。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#本章要回答的问题",
     "href": "ch/p1/05-scheduling.html#本章要回答的问题",
-    "title": "33  为什么 AI 任务难调度",
+    "title": "39  为什么 AI 任务难调度",
     "section": "",
     "text": "AI 任务难调度，不是因为 Pod 难放置，而是因为 GPU 稀缺、任务强协同、资源拓扑敏感、运行时间长、失败成本高，并且多租户之间存在真实的公平性冲突。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#普通调度和-ai-调度的差别",
     "href": "ch/p1/05-scheduling.html#普通调度和-ai-调度的差别",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.2 普通调度和 AI 调度的差别",
-    "text": "33.2 普通调度和 AI 调度的差别\nKubernetes 默认调度器的核心工作，是为尚未绑定节点的 Pod 选择一个合适的 Node。它会过滤不可行节点，再对可行节点打分，最后完成绑定。\n这个模型非常适合大量无状态服务，也能处理很多普通批任务。但 AI 任务经常超出“单个 Pod 找一个节点”的简单模型。\n\n\n\n问题\n普通服务\nAI 训练 / 推理\n\n\n\n\n资源粒度\nCPU、内存为主\nGPU、显存、拓扑、网络、存储\n\n\n任务形态\n多副本可独立运行\n分布式 worker 可能强协同\n\n\n启动要求\n副本可以逐步可用\n训练常要求一组 Pod 同时可用\n\n\n运行时长\n长短都有，常可滚动替换\n训练长周期，失败代价高\n\n\n拓扑敏感度\n通常较低\n多 GPU / 多节点任务很敏感\n\n\n公平性\n服务容量治理\n多租户 GPU 配额和队列治理\n\n\n\n因此，AI 调度不是否定 Kubernetes 默认调度，而是在 AI 场景中补足它没有表达或没有优化的任务语义。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.2 普通调度和 AI 调度的差别",
+    "text": "39.2 普通调度和 AI 调度的差别\nKubernetes 默认调度器的核心工作，是为尚未绑定节点的 Pod 选择一个合适的 Node。它会过滤不可行节点，再对可行节点打分，最后完成绑定。\n这个模型非常适合大量无状态服务，也能处理很多普通批任务。但 AI 任务经常超出“单个 Pod 找一个节点”的简单模型。\n\n\n\n问题\n普通服务\nAI 训练 / 推理\n\n\n\n\n资源粒度\nCPU、内存为主\nGPU、显存、拓扑、网络、存储\n\n\n任务形态\n多副本可独立运行\n分布式 worker 可能强协同\n\n\n启动要求\n副本可以逐步可用\n训练常要求一组 Pod 同时可用\n\n\n运行时长\n长短都有，常可滚动替换\n训练长周期，失败代价高\n\n\n拓扑敏感度\n通常较低\n多 GPU / 多节点任务很敏感\n\n\n公平性\n服务容量治理\n多租户 GPU 配额和队列治理\n\n\n\n因此，AI 调度不是否定 Kubernetes 默认调度，而是在 AI 场景中补足它没有表达或没有优化的任务语义。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点一gpu-是稀缺且不均匀的资源",
     "href": "ch/p1/05-scheduling.html#难点一gpu-是稀缺且不均匀的资源",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.3 难点一：GPU 是稀缺且不均匀的资源",
-    "text": "33.3 难点一：GPU 是稀缺且不均匀的资源\nCPU 和内存通常可以细粒度切分。GPU 则不同。\n一张 GPU 可能被整个训练任务独占，也可能通过 MIG、time-slicing、MPS 等方式共享。不同型号 GPU 的显存、算力、互联能力不同。即使同型号 GPU，所在节点、PCIe 拓扑、NVLink/NVSwitch 拓扑、网卡位置也可能影响性能。\n这会带来两个直接问题：\n\n资源碎片：集群里还有 8 张空闲 GPU，但分散在 8 个节点上，无法满足一个需要单机 8 卡的任务。\n性能不确定：任务拿到了足够数量的 GPU，但拓扑较差，导致通信慢，训练效率低。\n\n所以，AI 调度不能只看“剩余 GPU 数量”，还要看资源形态。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.3 难点一：GPU 是稀缺且不均匀的资源",
+    "text": "39.3 难点一：GPU 是稀缺且不均匀的资源\nCPU 和内存通常可以细粒度切分。GPU 则不同。\n一张 GPU 可能被整个训练任务独占，也可能通过 MIG、time-slicing、MPS 等方式共享。不同型号 GPU 的显存、算力、互联能力不同。即使同型号 GPU，所在节点、PCIe 拓扑、NVLink/NVSwitch 拓扑、网卡位置也可能影响性能。\n这会带来两个直接问题：\n\n资源碎片：集群里还有 8 张空闲 GPU，但分散在 8 个节点上，无法满足一个需要单机 8 卡的任务。\n性能不确定：任务拿到了足够数量的 GPU，但拓扑较差，导致通信慢，训练效率低。\n\n所以，AI 调度不能只看“剩余 GPU 数量”，还要看资源形态。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点二分布式训练需要成组调度",
     "href": "ch/p1/05-scheduling.html#难点二分布式训练需要成组调度",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.4 难点二：分布式训练需要成组调度",
-    "text": "33.4 难点二：分布式训练需要成组调度\n很多分布式训练任务不是“有几个 Pod 先跑几个”。它需要一组 worker 同时进入有效运行状态。\n如果一个任务需要 8 个 worker，但调度器只放进去了 4 个，结果可能是：\n\n已启动 worker 等待其他 worker。\nGPU 被占住但没有有效训练。\n其他任务也拿不到这些被占住的 GPU。\n集群整体利用率下降。\n\n这就是 Gang Scheduling 的来源。它的核心思想不是“更高级的调度”，而是一个简单约束：\n\n一组强协同任务，要么满足最小运行成员数后一起运行，要么暂时都不运行。\n\nVolcanoJob 的 minAvailable、PodGroup 的最小成员约束，以及类似调度系统中的 gang 语义，都是在表达这个问题。\n\n\n\n\n\nflowchart LR\n  Queue[\"训练任务队列\"] --&gt; Need[\"Job A 需要 8 个 worker\"]\n  Need --&gt; Partial[\"只调度到 5 个 worker\"]\n  Partial --&gt; Waste[\"5 张 GPU 被占用但等待\"]\n  Waste --&gt; Block[\"其他任务无法使用这些 GPU\"]\n  Need --&gt; Gang[\"Gang Scheduling\"]\n  Gang --&gt; AllOrNone[\"满足最小成员数后一起运行&lt;br/&gt;否则继续排队\"]",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.4 难点二：分布式训练需要成组调度",
+    "text": "39.4 难点二：分布式训练需要成组调度\n很多分布式训练任务不是“有几个 Pod 先跑几个”。它需要一组 worker 同时进入有效运行状态。\n如果一个任务需要 8 个 worker，但调度器只放进去了 4 个，结果可能是：\n\n已启动 worker 等待其他 worker。\nGPU 被占住但没有有效训练。\n其他任务也拿不到这些被占住的 GPU。\n集群整体利用率下降。\n\n这就是 Gang Scheduling 的来源。它的核心思想不是“更高级的调度”，而是一个简单约束：\n\n一组强协同任务，要么满足最小运行成员数后一起运行，要么暂时都不运行。\n\nVolcanoJob 的 minAvailable、PodGroup 的最小成员约束，以及类似调度系统中的 gang 语义，都是在表达这个问题。\n\n\n\n\n\nflowchart LR\n  Queue[\"训练任务队列\"] --&gt; Need[\"Job A 需要 8 个 worker\"]\n  Need --&gt; Partial[\"只调度到 5 个 worker\"]\n  Partial --&gt; Waste[\"5 张 GPU 被占用但等待\"]\n  Waste --&gt; Block[\"其他任务无法使用这些 GPU\"]\n  Need --&gt; Gang[\"Gang Scheduling\"]\n  Gang --&gt; AllOrNone[\"满足最小成员数后一起运行&lt;br/&gt;否则继续排队\"]",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点三长任务的失败成本高",
     "href": "ch/p1/05-scheduling.html#难点三长任务的失败成本高",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.5 难点三：长任务的失败成本高",
-    "text": "33.5 难点三：长任务的失败成本高\n训练任务经常运行很久。失败一次，损失的不是一次请求，而是大量已经消耗的 GPU 时间。\n所以调度器和平台必须关心：\n\n任务是否支持 checkpoint。\n抢占后能否恢复。\n恢复需要多长时间。\n失败是单个 Pod 问题，还是整个 job 需要重启。\n是否应该优先保护已经运行很久的任务。\n\n这也是 AI 调度和普通在线服务调度的重要差异。在线服务通常通过副本冗余和请求重试恢复；训练任务则需要 checkpoint、resume 和 job 级状态管理。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.5 难点三：长任务的失败成本高",
+    "text": "39.5 难点三：长任务的失败成本高\n训练任务经常运行很久。失败一次，损失的不是一次请求，而是大量已经消耗的 GPU 时间。\n所以调度器和平台必须关心：\n\n任务是否支持 checkpoint。\n抢占后能否恢复。\n恢复需要多长时间。\n失败是单个 Pod 问题，还是整个 job 需要重启。\n是否应该优先保护已经运行很久的任务。\n\n这也是 AI 调度和普通在线服务调度的重要差异。在线服务通常通过副本冗余和请求重试恢复；训练任务则需要 checkpoint、resume 和 job 级状态管理。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点四多租户公平性不是平均分",
     "href": "ch/p1/05-scheduling.html#难点四多租户公平性不是平均分",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.6 难点四：多租户公平性不是平均分",
-    "text": "33.6 难点四：多租户公平性不是平均分\nGPU 集群通常服务多个团队、项目或业务线。每个租户都希望任务尽快运行，但 GPU 不可能无限供给。\n公平性并不等于简单平均分。真实集群里常见需求包括：\n\n重要队列拥有更高权重。\n某些队列有最小保障资源。\n某些队列可以借用空闲资源。\n借用资源在高优任务到来时可以被回收。\n不同租户可能使用不同 GPU 型号。\n\nFair Share、DRF、Quota、Priority、Preemption 这些机制，都是为了处理多租户资源冲突。\n其中 DRF 的直觉是：不要只看某一种资源，而要看每个租户在“主导资源”上的占用比例。例如某个租户主要占 GPU，另一个租户主要占 CPU 和内存，公平性就不能只按 Pod 数量计算。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.6 难点四：多租户公平性不是平均分",
+    "text": "39.6 难点四：多租户公平性不是平均分\nGPU 集群通常服务多个团队、项目或业务线。每个租户都希望任务尽快运行，但 GPU 不可能无限供给。\n公平性并不等于简单平均分。真实集群里常见需求包括：\n\n重要队列拥有更高权重。\n某些队列有最小保障资源。\n某些队列可以借用空闲资源。\n借用资源在高优任务到来时可以被回收。\n不同租户可能使用不同 GPU 型号。\n\nFair Share、DRF、Quota、Priority、Preemption 这些机制，都是为了处理多租户资源冲突。\n其中 DRF 的直觉是：不要只看某一种资源，而要看每个租户在“主导资源”上的占用比例。例如某个租户主要占 GPU，另一个租户主要占 CPU 和内存，公平性就不能只按 Pod 数量计算。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点五利用率和公平性会冲突",
     "href": "ch/p1/05-scheduling.html#难点五利用率和公平性会冲突",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.7 难点五：利用率和公平性会冲突",
-    "text": "33.7 难点五：利用率和公平性会冲突\n调度系统经常同时追求两个目标：\n\n公平：不同租户按规则获得资源。\n利用率：GPU 尽量不要空闲。\n\n这两个目标会冲突。\n假设一个大训练任务排在队首，需要 16 张 GPU，但当前只有 8 张空闲 GPU。如果严格按队列顺序等待，8 张 GPU 会闲置。如果允许一个只需要 2 张 GPU 的短任务先运行，就能提高利用率，但可能影响队首任务等待时间。\nBackfilling 就是在处理这个矛盾：在不破坏关键公平性和预约约束的前提下，把短任务填进资源空档。\n这说明调度策略不是越“公平”越好，也不是利用率越高越好。调度器必须在公平、吞吐、等待时间、抢占成本和业务优先级之间做权衡。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.7 难点五：利用率和公平性会冲突",
+    "text": "39.7 难点五：利用率和公平性会冲突\n调度系统经常同时追求两个目标：\n\n公平：不同租户按规则获得资源。\n利用率：GPU 尽量不要空闲。\n\n这两个目标会冲突。\n假设一个大训练任务排在队首，需要 16 张 GPU，但当前只有 8 张空闲 GPU。如果严格按队列顺序等待，8 张 GPU 会闲置。如果允许一个只需要 2 张 GPU 的短任务先运行，就能提高利用率，但可能影响队首任务等待时间。\nBackfilling 就是在处理这个矛盾：在不破坏关键公平性和预约约束的前提下，把短任务填进资源空档。\n这说明调度策略不是越“公平”越好，也不是利用率越高越好。调度器必须在公平、吞吐、等待时间、抢占成本和业务优先级之间做权衡。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#难点六推理也有调度问题",
     "href": "ch/p1/05-scheduling.html#难点六推理也有调度问题",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.8 难点六：推理也有调度问题",
-    "text": "33.8 难点六：推理也有调度问题\n很多人把 AI 调度只理解成训练调度。实际上，推理也有调度问题，只是形态不同。\n推理调度至少包括：\n\n请求路由到哪个模型副本。\n新副本放到哪个节点。\n是否使用 GPU 共享。\n是否按模型大小、显存余量和 KV Cache 状态做路由。\n扩容时如何避免冷启动冲击。\n多模型服务如何避免互相干扰。\n\n大模型推理如果使用 tensor parallel 或 pipeline parallel，也会重新引入多 Pod / 多 GPU 协同问题。PD disaggregation、prefill/decode 分离、多节点推理等架构，会让推理调度越来越接近复杂的分布式系统调度。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.8 难点六：推理也有调度问题",
+    "text": "39.8 难点六：推理也有调度问题\n很多人把 AI 调度只理解成训练调度。实际上，推理也有调度问题，只是形态不同。\n推理调度至少包括：\n\n请求路由到哪个模型副本。\n新副本放到哪个节点。\n是否使用 GPU 共享。\n是否按模型大小、显存余量和 KV Cache 状态做路由。\n扩容时如何避免冷启动冲击。\n多模型服务如何避免互相干扰。\n\n大模型推理如果使用 tensor parallel 或 pipeline parallel，也会重新引入多 Pod / 多 GPU 协同问题。PD disaggregation、prefill/decode 分离、多节点推理等架构，会让推理调度越来越接近复杂的分布式系统调度。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#kubernetes-落地视角",
     "href": "ch/p1/05-scheduling.html#kubernetes-落地视角",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.9 Kubernetes 落地视角",
-    "text": "33.9 Kubernetes 落地视角\nKubernetes 的默认调度器负责 Pod 到 Node 的绑定。它是 AI 平台的基础，但不是全部。\nAI 平台通常会在它之上或旁边引入额外组件：\n\n\n\n能力\n典型实现\n\n\n\n\n队列和准入\nKueue、Volcano Queue、平台自研队列\n\n\nGang Scheduling\nVolcano PodGroup、VolcanoJob、其他批调度器\n\n\n公平性\nFair Share、DRF、Quota、Priority\n\n\n拓扑感知\n节点标签、拓扑插件、NVIDIA/NIC/GPU 拓扑信息\n\n\nGPU 共享\nMIG、time-slicing、MPS、vGPU\n\n\n任务控制\nKubeflow Training Operator、VolcanoJob、RayJob、KServe\n\n\n观测反馈\nDCGM、Prometheus、训练日志、推理指标\n\n\n\n这些组件的共同目标，是把 AI 工作负载的真实约束传递给调度和控制系统。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.9 Kubernetes 落地视角",
+    "text": "39.9 Kubernetes 落地视角\nKubernetes 的默认调度器负责 Pod 到 Node 的绑定。它是 AI 平台的基础，但不是全部。\nAI 平台通常会在它之上或旁边引入额外组件：\n\n\n\n能力\n典型实现\n\n\n\n\n队列和准入\nKueue、Volcano Queue、平台自研队列\n\n\nGang Scheduling\nVolcano PodGroup、VolcanoJob、其他批调度器\n\n\n公平性\nFair Share、DRF、Quota、Priority\n\n\n拓扑感知\n节点标签、拓扑插件、NVIDIA/NIC/GPU 拓扑信息\n\n\nGPU 共享\nMIG、time-slicing、MPS、vGPU\n\n\n任务控制\nKubeflow Training Operator、VolcanoJob、RayJob、KServe\n\n\n观测反馈\nDCGM、Prometheus、训练日志、推理指标\n\n\n\n这些组件的共同目标，是把 AI 工作负载的真实约束传递给调度和控制系统。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#常见误区",
     "href": "ch/p1/05-scheduling.html#常见误区",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.10 常见误区",
-    "text": "33.10 常见误区\n误区一：调度就是把 Pod 放到节点。\n这是 Kubernetes 调度的表层动作。AI 调度还要处理队列、最小成员数、拓扑、公平性、抢占和恢复成本。\n误区二：GPU 空闲就是调度器没做好。\n不一定。可能是队首大任务等待完整资源，也可能是资源碎片、拓扑约束或配额策略造成的结果。\n误区三：抢占一定能提高效率。\n抢占会释放资源，但也会浪费被抢占任务的已完成计算。没有 checkpoint 的长训练任务被抢占，成本可能很高。\n误区四：推理服务只需要 HPA。\nHPA 能处理部分扩缩容问题，但 LLM 推理还需要考虑模型加载、显存、KV Cache、冷启动、batching 和路由策略。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.10 常见误区",
+    "text": "39.10 常见误区\n误区一：调度就是把 Pod 放到节点。\n这是 Kubernetes 调度的表层动作。AI 调度还要处理队列、最小成员数、拓扑、公平性、抢占和恢复成本。\n误区二：GPU 空闲就是调度器没做好。\n不一定。可能是队首大任务等待完整资源，也可能是资源碎片、拓扑约束或配额策略造成的结果。\n误区三：抢占一定能提高效率。\n抢占会释放资源，但也会浪费被抢占任务的已完成计算。没有 checkpoint 的长训练任务被抢占，成本可能很高。\n误区四：推理服务只需要 HPA。\nHPA 能处理部分扩缩容问题，但 LLM 推理还需要考虑模型加载、显存、KV Cache、冷启动、batching 和路由策略。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p1/05-scheduling.html#本章小结",
     "href": "ch/p1/05-scheduling.html#本章小结",
-    "title": "33  为什么 AI 任务难调度",
-    "section": "33.11 本章小结",
-    "text": "33.11 本章小结\n读完本章，需要形成四个判断：\n\nAI 调度难在任务语义，而不是 Pod API。\n分布式训练需要成组调度，否则可能占用 GPU 却没有有效计算。\n多租户 GPU 集群必须在公平性、利用率和抢占成本之间权衡。\n推理服务也有调度问题，尤其是大模型推理和多模型服务。\n\n后面讲 Volcano、Kueue、KAI Scheduler 和推理调度时，本章就是它们的系统背景。",
+    "title": "39  为什么 AI 任务难调度",
+    "section": "39.11 本章小结",
+    "text": "39.11 本章小结\n读完本章，需要形成四个判断：\n\nAI 调度难在任务语义，而不是 Pod API。\n分布式训练需要成组调度，否则可能占用 GPU 却没有有效计算。\n多租户 GPU 集群必须在公平性、利用率和抢占成本之间权衡。\n推理服务也有调度问题，尤其是大模型推理和多模型服务。\n\n后面讲 Volcano、Kueue、KAI Scheduler 和推理调度时，本章就是它们的系统背景。",
     "crumbs": [
       "第十篇 调度与资源优化",
-      "<span class='chapter-number'>33</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
+      "<span class='chapter-number'>39</span>  <span class='chapter-title'>为什么 AI 任务难调度</span>"
     ]
   },
   {
     "objectID": "ch/p11/73-ray-runtime.html",
     "href": "ch/p11/73-ray-runtime.html",
-    "title": "34  Ray 的本质",
+    "title": "40  Ray 的本质",
     "section": "",
-    "text": "34.1 本篇要回答的问题\nRay 经常和训练、推理、数据处理一起出现，但它不是 PyTorch 的替代品，也不是 Kubernetes 的替代品。",
+    "text": "40.1 本篇要回答的问题\nRay 经常和训练、推理、数据处理一起出现，但它不是 PyTorch 的替代品，也不是 Kubernetes 的替代品。",
     "crumbs": [
       "第十一篇 数据处理与 Ray",
-      "<span class='chapter-number'>34</span>  <span class='chapter-title'>Ray 的本质</span>"
+      "<span class='chapter-number'>40</span>  <span class='chapter-title'>Ray 的本质</span>"
     ]
   },
   {
     "objectID": "ch/p11/73-ray-runtime.html#本篇要回答的问题",
     "href": "ch/p11/73-ray-runtime.html#本篇要回答的问题",
-    "title": "34  Ray 的本质",
+    "title": "40  Ray 的本质",
     "section": "",
     "text": "Ray 的本质，是一个面向 Python 任务和 actor 的分布式执行运行时；KubeRay 则把 Ray 集群生命周期放到 Kubernetes 上管理。",
     "crumbs": [
       "第十一篇 数据处理与 Ray",
-      "<span class='chapter-number'>34</span>  <span class='chapter-title'>Ray 的本质</span>"
+      "<span class='chapter-number'>40</span>  <span class='chapter-title'>Ray 的本质</span>"
     ]
   },
   {
     "objectID": "ch/p11/73-ray-runtime.html#ray-解决什么",
     "href": "ch/p11/73-ray-runtime.html#ray-解决什么",
-    "title": "34  Ray 的本质",
-    "section": "34.2 Ray 解决什么",
-    "text": "34.2 Ray 解决什么\nRay 更适合这些场景：\n\n大规模数据处理。\n超参数搜索。\n多任务并行。\n分布式训练编排。\nRay Serve 模型服务。\n需要 Python actor 状态的系统。\n\n它不自动解决 GPU 调度、公平性、模型显存管理和 Kubernetes 多租户治理。这些仍然要和平台层、调度层、运行时层共同设计。",
+    "title": "40  Ray 的本质",
+    "section": "40.2 Ray 解决什么",
+    "text": "40.2 Ray 解决什么\nRay 更适合这些场景：\n\n大规模数据处理。\n超参数搜索。\n多任务并行。\n分布式训练编排。\nRay Serve 模型服务。\n需要 Python actor 状态的系统。\n\n它不自动解决 GPU 调度、公平性、模型显存管理和 Kubernetes 多租户治理。这些仍然要和平台层、调度层、运行时层共同设计。",
     "crumbs": [
       "第十一篇 数据处理与 Ray",
-      "<span class='chapter-number'>34</span>  <span class='chapter-title'>Ray 的本质</span>"
+      "<span class='chapter-number'>40</span>  <span class='chapter-title'>Ray 的本质</span>"
     ]
   },
   {
     "objectID": "ch/p11/73-ray-runtime.html#本章小结",
     "href": "ch/p11/73-ray-runtime.html#本章小结",
-    "title": "34  Ray 的本质",
-    "section": "34.3 本章小结",
-    "text": "34.3 本章小结\n第十一篇会把 Ray 放到正确层次：它是分布式执行运行时和生态，不是所有 AI 平台问题的统一答案。",
+    "title": "40  Ray 的本质",
+    "section": "40.3 本章小结",
+    "text": "40.3 本章小结\n第十一篇会把 Ray 放到正确层次：它是分布式执行运行时和生态，不是所有 AI 平台问题的统一答案。",
     "crumbs": [
       "第十一篇 数据处理与 Ray",
-      "<span class='chapter-number'>34</span>  <span class='chapter-title'>Ray 的本质</span>"
+      "<span class='chapter-number'>40</span>  <span class='chapter-title'>Ray 的本质</span>"
     ]
   },
   {
     "objectID": "ch/p12/81-platform-design.html",
     "href": "ch/p12/81-platform-design.html",
-    "title": "35  AI 平台分层设计",
+    "title": "41  AI 平台分层设计",
     "section": "",
-    "text": "35.1 本篇要回答的问题\n最后一篇把全书串起来：从用户提交任务开始，到数据、训练、推理、调度、观测和成本治理，如何组成一个生产级 AI 平台。",
+    "text": "41.1 本篇要回答的问题\n最后一篇把全书串起来：从用户提交任务开始，到数据、训练、推理、调度、观测和成本治理，如何组成一个生产级 AI 平台。",
     "crumbs": [
       "第十二篇 生产实战",
-      "<span class='chapter-number'>35</span>  <span class='chapter-title'>AI 平台分层设计</span>"
+      "<span class='chapter-number'>41</span>  <span class='chapter-title'>AI 平台分层设计</span>"
     ]
   },
   {
     "objectID": "ch/p12/81-platform-design.html#平台分层",
     "href": "ch/p12/81-platform-design.html#平台分层",
-    "title": "35  AI 平台分层设计",
-    "section": "35.2 平台分层",
-    "text": "35.2 平台分层\n\n\n\n\n\n\n\n\n层次\n关注点\n典型能力\n\n\n\n\n用户入口层\n如何提交和管理任务\nPortal、CLI、API\n\n\n任务抽象层\n如何表达训练/推理/数据处理\nCRD、模板、SDK\n\n\n调度治理层\n如何分配 GPU\n队列、配额、优先级、gang、拓扑\n\n\n运行时层\n如何执行 AI workload\nPyTorch、TensorFlow、Ray、vLLM、Triton\n\n\n数据模型层\n如何管理数据和产物\nDataset、checkpoint、model registry\n\n\n观测运营层\n如何排障和优化\nmetrics、logs、events、profiler、成本",
+    "title": "41  AI 平台分层设计",
+    "section": "41.2 平台分层",
+    "text": "41.2 平台分层\n\n\n\n\n\n\n\n\n层次\n关注点\n典型能力\n\n\n\n\n用户入口层\n如何提交和管理任务\nPortal、CLI、API\n\n\n任务抽象层\n如何表达训练/推理/数据处理\nCRD、模板、SDK\n\n\n调度治理层\n如何分配 GPU\n队列、配额、优先级、gang、拓扑\n\n\n运行时层\n如何执行 AI workload\nPyTorch、TensorFlow、Ray、vLLM、Triton\n\n\n数据模型层\n如何管理数据和产物\nDataset、checkpoint、model registry\n\n\n观测运营层\n如何排障和优化\nmetrics、logs、events、profiler、成本",
     "crumbs": [
       "第十二篇 生产实战",
-      "<span class='chapter-number'>35</span>  <span class='chapter-title'>AI 平台分层设计</span>"
+      "<span class='chapter-number'>41</span>  <span class='chapter-title'>AI 平台分层设计</span>"
     ]
   },
   {
     "objectID": "ch/p12/81-platform-design.html#本章小结",
     "href": "ch/p12/81-platform-design.html#本章小结",
-    "title": "35  AI 平台分层设计",
-    "section": "35.3 本章小结",
-    "text": "35.3 本章小结\n第十二篇会用端到端实战把前面所有知识串起来：单卡训练、分布式训练、Ray 数据处理、LLM 推理服务、训练与推理一体化平台。",
+    "title": "41  AI 平台分层设计",
+    "section": "41.3 本章小结",
+    "text": "41.3 本章小结\n第十二篇会用端到端实战把前面所有知识串起来：单卡训练、分布式训练、Ray 数据处理、LLM 推理服务、训练与推理一体化平台。",
     "crumbs": [
       "第十二篇 生产实战",
-      "<span class='chapter-number'>35</span>  <span class='chapter-title'>AI 平台分层设计</span>"
+      "<span class='chapter-number'>41</span>  <span class='chapter-title'>AI 平台分层设计</span>"
     ]
   },
   {

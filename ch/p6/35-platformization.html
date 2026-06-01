@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>29&nbsp; 为什么 AI 任务需要平台化 – AI 训练与推理系统工程</title>
+<title>35&nbsp; 为什么 AI 任务需要平台化 – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -31,7 +31,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
 <link href="../../ch/p1/06-k8s.html" rel="next">
-<link href="../../ch/p5/28-distributed-overview.html" rel="prev">
+<link href="../../ch/p5/34-straggler-fault.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html">第六篇 AI 平台化</a></li><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html">第六篇 AI 平台化</a></li><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -348,6 +348,42 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/29-data-parallel-ddp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/30-fsdp-zero.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/31-tensor-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/32-pipeline-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/33-distributed-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/34-straggler-fault.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -362,7 +398,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p6/35-platformization.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
   </div>
 </li>
       </ul>
@@ -379,7 +415,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/06-k8s.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
+ <span class="menu-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
   </div>
 </li>
       </ul>
@@ -396,7 +432,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p4/24-kubeflow-v1.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
+ <span class="menu-text"><span class="chapter-number">37</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
   </div>
 </li>
       </ul>
@@ -413,7 +449,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p7/50-llm-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
+ <span class="menu-text"><span class="chapter-number">38</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
   </div>
 </li>
       </ul>
@@ -430,7 +466,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/05-scheduling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
+ <span class="menu-text"><span class="chapter-number">39</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
   </div>
 </li>
       </ul>
@@ -447,7 +483,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p11/73-ray-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
+ <span class="menu-text"><span class="chapter-number">40</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
   </div>
 </li>
       </ul>
@@ -464,7 +500,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p12/81-platform-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
+ <span class="menu-text"><span class="chapter-number">41</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
   </div>
 </li>
       </ul>
@@ -485,19 +521,19 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本篇要回答的问题" id="toc-本篇要回答的问题" class="nav-link active" data-scroll-target="#本篇要回答的问题"><span class="header-section-number">29.1</span> 本篇要回答的问题</a></li>
-  <li><a href="#平台要解决的共性问题" id="toc-平台要解决的共性问题" class="nav-link" data-scroll-target="#平台要解决的共性问题"><span class="header-section-number">29.2</span> 平台要解决的共性问题</a></li>
-  <li><a href="#平台不是遮蔽底层" id="toc-平台不是遮蔽底层" class="nav-link" data-scroll-target="#平台不是遮蔽底层"><span class="header-section-number">29.3</span> 平台不是遮蔽底层</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">29.4</span> 本章小结</a></li>
+  <li><a href="#本篇要回答的问题" id="toc-本篇要回答的问题" class="nav-link active" data-scroll-target="#本篇要回答的问题"><span class="header-section-number">35.1</span> 本篇要回答的问题</a></li>
+  <li><a href="#平台要解决的共性问题" id="toc-平台要解决的共性问题" class="nav-link" data-scroll-target="#平台要解决的共性问题"><span class="header-section-number">35.2</span> 平台要解决的共性问题</a></li>
+  <li><a href="#平台不是遮蔽底层" id="toc-平台不是遮蔽底层" class="nav-link" data-scroll-target="#平台不是遮蔽底层"><span class="header-section-number">35.3</span> 平台不是遮蔽底层</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">35.4</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html">第六篇 AI 平台化</a></li><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html">第六篇 AI 平台化</a></li><li class="breadcrumb-item"><a href="../../ch/p6/35-platformization.html"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></h1>
+<h1 class="title"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></h1>
 </div>
 
 
@@ -514,15 +550,15 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="本篇要回答的问题" class="level2" data-number="29.1">
-<h2 data-number="29.1" class="anchored" data-anchor-id="本篇要回答的问题"><span class="header-section-number">29.1</span> 本篇要回答的问题</h2>
+<section id="本篇要回答的问题" class="level2" data-number="35.1">
+<h2 data-number="35.1" class="anchored" data-anchor-id="本篇要回答的问题"><span class="header-section-number">35.1</span> 本篇要回答的问题</h2>
 <p>到这里，我们已经知道 AI 任务的计算、训练、推理、GPU 和分布式问题。接下来要问：为什么不能让每个团队自己写脚本、自己找机器、自己跑任务？</p>
 <blockquote class="blockquote">
 <p>AI 平台化的本质，是把训练和推理的共性能力沉淀为统一入口、任务抽象、资源治理、运行时标准和观测闭环。</p>
 </blockquote>
 </section>
-<section id="平台要解决的共性问题" class="level2" data-number="29.2">
-<h2 data-number="29.2" class="anchored" data-anchor-id="平台要解决的共性问题"><span class="header-section-number">29.2</span> 平台要解决的共性问题</h2>
+<section id="平台要解决的共性问题" class="level2" data-number="35.2">
+<h2 data-number="35.2" class="anchored" data-anchor-id="平台要解决的共性问题"><span class="header-section-number">35.2</span> 平台要解决的共性问题</h2>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -565,8 +601,8 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 </section>
-<section id="平台不是遮蔽底层" class="level2" data-number="29.3">
-<h2 data-number="29.3" class="anchored" data-anchor-id="平台不是遮蔽底层"><span class="header-section-number">29.3</span> 平台不是遮蔽底层</h2>
+<section id="平台不是遮蔽底层" class="level2" data-number="35.3">
+<h2 data-number="35.3" class="anchored" data-anchor-id="平台不是遮蔽底层"><span class="header-section-number">35.3</span> 平台不是遮蔽底层</h2>
 <p>好的 AI 平台不是把底层细节全部藏起来，而是把关键约束显式化：</p>
 <ul>
 <li>训练任务需要多少 GPU，是否需要 gang。</li>
@@ -576,8 +612,8 @@ ul.task-list li input[type="checkbox"] {
 <li>GPU 拓扑是否影响性能。</li>
 </ul>
 </section>
-<section id="本章小结" class="level2" data-number="29.4">
-<h2 data-number="29.4" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">29.4</span> 本章小结</h2>
+<section id="本章小结" class="level2" data-number="35.4">
+<h2 data-number="35.4" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">35.4</span> 本章小结</h2>
 <p>第六篇会把前面的技术问题转成平台能力清单，为后面的 Kubernetes、CRD、Operator、队列和调度系统做铺垫。</p>
 
 
@@ -986,13 +1022,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../ch/p5/28-distributed-overview.html" class="pagination-link" aria-label="分布式 AI 的基本问题">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span>
+      <a href="../../ch/p5/34-straggler-fault.html" class="pagination-link" aria-label="慢节点、故障与恢复">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="../../ch/p1/06-k8s.html" class="pagination-link" aria-label="从 Kubernetes 视角重新理解 AI 任务">
-        <span class="nav-page-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

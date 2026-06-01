@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>30&nbsp; 从 Kubernetes 视角重新理解 AI 任务 – AI 训练与推理系统工程</title>
+<title>36&nbsp; 从 Kubernetes 视角重新理解 AI 任务 – AI 训练与推理系统工程</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -88,7 +88,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html">第七篇 Kubernetes 基础架构</a></li><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html">第七篇 Kubernetes 基础架构</a></li><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="展开或折叠侧边栏导航" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="搜索" onclick="window.quartoOpenSearch();">
@@ -352,6 +352,42 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">分布式 AI 的基本问题</span></span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/29-data-parallel-ddp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Data Parallel 与 DDP</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/30-fsdp-zero.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">FSDP 与 ZeRO</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/31-tensor-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Tensor Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/32-pipeline-parallel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Pipeline Parallel</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/33-distributed-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">分布式推理</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../ch/p5/34-straggler-fault.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">慢节点、故障与恢复</span></span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -366,7 +402,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p6/35-platformization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span></a>
   </div>
 </li>
       </ul>
@@ -383,7 +419,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/06-k8s.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
+ <span class="menu-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></span></a>
   </div>
 </li>
       </ul>
@@ -400,7 +436,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p4/24-kubeflow-v1.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
+ <span class="menu-text"><span class="chapter-number">37</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span></a>
   </div>
 </li>
       </ul>
@@ -417,7 +453,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p7/50-llm-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
+ <span class="menu-text"><span class="chapter-number">38</span>&nbsp; <span class="chapter-title">vLLM 与 LLM 推理运行时</span></span></a>
   </div>
 </li>
       </ul>
@@ -434,7 +470,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p1/05-scheduling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
+ <span class="menu-text"><span class="chapter-number">39</span>&nbsp; <span class="chapter-title">为什么 AI 任务难调度</span></span></a>
   </div>
 </li>
       </ul>
@@ -451,7 +487,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p11/73-ray-runtime.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
+ <span class="menu-text"><span class="chapter-number">40</span>&nbsp; <span class="chapter-title">Ray 的本质</span></span></a>
   </div>
 </li>
       </ul>
@@ -468,7 +504,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../ch/p12/81-platform-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
+ <span class="menu-text"><span class="chapter-number">41</span>&nbsp; <span class="chapter-title">AI 平台分层设计</span></span></a>
   </div>
 </li>
       </ul>
@@ -489,27 +525,27 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">目录</h2>
    
   <ul>
-  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">30.1</span> 本章要回答的问题</a></li>
-  <li><a href="#kubernetes-看到什么" id="toc-kubernetes-看到什么" class="nav-link" data-scroll-target="#kubernetes-看到什么"><span class="header-section-number">30.2</span> Kubernetes 看到什么</a></li>
-  <li><a href="#ai-任务的-kubernetes-控制回路" id="toc-ai-任务的-kubernetes-控制回路" class="nav-link" data-scroll-target="#ai-任务的-kubernetes-控制回路"><span class="header-section-number">30.3</span> AI 任务的 Kubernetes 控制回路</a></li>
-  <li><a href="#pod最小运行单位但不是任务边界" id="toc-pod最小运行单位但不是任务边界" class="nav-link" data-scroll-target="#pod最小运行单位但不是任务边界"><span class="header-section-number">30.4</span> Pod：最小运行单位，但不是任务边界</a></li>
-  <li><a href="#job一次性任务的基础" id="toc-job一次性任务的基础" class="nav-link" data-scroll-target="#job一次性任务的基础"><span class="header-section-number">30.5</span> Job：一次性任务的基础</a></li>
-  <li><a href="#crd-与-operator把专业知识放进控制面" id="toc-crd-与-operator把专业知识放进控制面" class="nav-link" data-scroll-target="#crd-与-operator把专业知识放进控制面"><span class="header-section-number">30.6</span> CRD 与 Operator：把专业知识放进控制面</a></li>
-  <li><a href="#service推理和分布式协同的入口" id="toc-service推理和分布式协同的入口" class="nav-link" data-scroll-target="#service推理和分布式协同的入口"><span class="header-section-number">30.7</span> Service：推理和分布式协同的入口</a></li>
-  <li><a href="#volume数据checkpoint-和模型权重" id="toc-volume数据checkpoint-和模型权重" class="nav-link" data-scroll-target="#volume数据checkpoint-和模型权重"><span class="header-section-number">30.8</span> Volume：数据、checkpoint 和模型权重</a></li>
-  <li><a href="#scheduler资源分配入口" id="toc-scheduler资源分配入口" class="nav-link" data-scroll-target="#scheduler资源分配入口"><span class="header-section-number">30.9</span> Scheduler：资源分配入口</a></li>
-  <li><a href="#ai-平台的分层模型" id="toc-ai-平台的分层模型" class="nav-link" data-scroll-target="#ai-平台的分层模型"><span class="header-section-number">30.10</span> AI 平台的分层模型</a></li>
-  <li><a href="#常见误区" id="toc-常见误区" class="nav-link" data-scroll-target="#常见误区"><span class="header-section-number">30.11</span> 常见误区</a></li>
-  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">30.12</span> 本章小结</a></li>
+  <li><a href="#本章要回答的问题" id="toc-本章要回答的问题" class="nav-link active" data-scroll-target="#本章要回答的问题"><span class="header-section-number">36.1</span> 本章要回答的问题</a></li>
+  <li><a href="#kubernetes-看到什么" id="toc-kubernetes-看到什么" class="nav-link" data-scroll-target="#kubernetes-看到什么"><span class="header-section-number">36.2</span> Kubernetes 看到什么</a></li>
+  <li><a href="#ai-任务的-kubernetes-控制回路" id="toc-ai-任务的-kubernetes-控制回路" class="nav-link" data-scroll-target="#ai-任务的-kubernetes-控制回路"><span class="header-section-number">36.3</span> AI 任务的 Kubernetes 控制回路</a></li>
+  <li><a href="#pod最小运行单位但不是任务边界" id="toc-pod最小运行单位但不是任务边界" class="nav-link" data-scroll-target="#pod最小运行单位但不是任务边界"><span class="header-section-number">36.4</span> Pod：最小运行单位，但不是任务边界</a></li>
+  <li><a href="#job一次性任务的基础" id="toc-job一次性任务的基础" class="nav-link" data-scroll-target="#job一次性任务的基础"><span class="header-section-number">36.5</span> Job：一次性任务的基础</a></li>
+  <li><a href="#crd-与-operator把专业知识放进控制面" id="toc-crd-与-operator把专业知识放进控制面" class="nav-link" data-scroll-target="#crd-与-operator把专业知识放进控制面"><span class="header-section-number">36.6</span> CRD 与 Operator：把专业知识放进控制面</a></li>
+  <li><a href="#service推理和分布式协同的入口" id="toc-service推理和分布式协同的入口" class="nav-link" data-scroll-target="#service推理和分布式协同的入口"><span class="header-section-number">36.7</span> Service：推理和分布式协同的入口</a></li>
+  <li><a href="#volume数据checkpoint-和模型权重" id="toc-volume数据checkpoint-和模型权重" class="nav-link" data-scroll-target="#volume数据checkpoint-和模型权重"><span class="header-section-number">36.8</span> Volume：数据、checkpoint 和模型权重</a></li>
+  <li><a href="#scheduler资源分配入口" id="toc-scheduler资源分配入口" class="nav-link" data-scroll-target="#scheduler资源分配入口"><span class="header-section-number">36.9</span> Scheduler：资源分配入口</a></li>
+  <li><a href="#ai-平台的分层模型" id="toc-ai-平台的分层模型" class="nav-link" data-scroll-target="#ai-平台的分层模型"><span class="header-section-number">36.10</span> AI 平台的分层模型</a></li>
+  <li><a href="#常见误区" id="toc-常见误区" class="nav-link" data-scroll-target="#常见误区"><span class="header-section-number">36.11</span> 常见误区</a></li>
+  <li><a href="#本章小结" id="toc-本章小结" class="nav-link" data-scroll-target="#本章小结"><span class="header-section-number">36.12</span> 本章小结</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html">第七篇 Kubernetes 基础架构</a></li><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html">第七篇 Kubernetes 基础架构</a></li><li class="breadcrumb-item"><a href="../../ch/p1/06-k8s.html"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></h1>
+<h1 class="title"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">从 Kubernetes 视角重新理解 AI 任务</span></h1>
 </div>
 
 
@@ -526,8 +562,8 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="本章要回答的问题" class="level2" data-number="30.1">
-<h2 data-number="30.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">30.1</span> 本章要回答的问题</h2>
+<section id="本章要回答的问题" class="level2" data-number="36.1">
+<h2 data-number="36.1" class="anchored" data-anchor-id="本章要回答的问题"><span class="header-section-number">36.1</span> 本章要回答的问题</h2>
 <p>前几章从 AI 工作负载本身出发，解释了计算、显存、数据、通信、训练、推理和调度难点。现在要把这些问题放回 Kubernetes。</p>
 <p>Kubernetes 不直接理解“训练”“推理”“梯度同步”“KV Cache”这些概念。它理解的是 API 对象、控制器、调度器、Pod、Service、Volume 和指标。</p>
 <p>本章给出第七篇的开篇判断：</p>
@@ -535,8 +571,8 @@ ul.task-list li input[type="checkbox"] {
 <p>AI on Kubernetes 的核心，是把 AI 任务的生命周期和资源约束，翻译成 Kubernetes 可以声明、控制、调度、观测和治理的对象。</p>
 </blockquote>
 </section>
-<section id="kubernetes-看到什么" class="level2" data-number="30.2">
-<h2 data-number="30.2" class="anchored" data-anchor-id="kubernetes-看到什么"><span class="header-section-number">30.2</span> Kubernetes 看到什么</h2>
+<section id="kubernetes-看到什么" class="level2" data-number="36.2">
+<h2 data-number="36.2" class="anchored" data-anchor-id="kubernetes-看到什么"><span class="header-section-number">36.2</span> Kubernetes 看到什么</h2>
 <p>Kubernetes 的基本工作方式是声明式控制。用户提交期望状态，控制器不断观察实际状态，并尝试让实际状态接近期望状态。</p>
 <p>对 AI 平台来说，最重要的对象包括：</p>
 <table class="caption-top table">
@@ -595,8 +631,8 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>这些对象不是孤立工具。它们共同构成 AI 任务的控制回路。</p>
 </section>
-<section id="ai-任务的-kubernetes-控制回路" class="level2" data-number="30.3">
-<h2 data-number="30.3" class="anchored" data-anchor-id="ai-任务的-kubernetes-控制回路"><span class="header-section-number">30.3</span> AI 任务的 Kubernetes 控制回路</h2>
+<section id="ai-任务的-kubernetes-控制回路" class="level2" data-number="36.3">
+<h2 data-number="36.3" class="anchored" data-anchor-id="ai-任务的-kubernetes-控制回路"><span class="header-section-number">36.3</span> AI 任务的 Kubernetes 控制回路</h2>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -628,8 +664,8 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <p>如果其中任何一层缺失，平台就会退化成“提交 YAML 的脚本集合”。</p>
 </section>
-<section id="pod最小运行单位但不是任务边界" class="level2" data-number="30.4">
-<h2 data-number="30.4" class="anchored" data-anchor-id="pod最小运行单位但不是任务边界"><span class="header-section-number">30.4</span> Pod：最小运行单位，但不是任务边界</h2>
+<section id="pod最小运行单位但不是任务边界" class="level2" data-number="36.4">
+<h2 data-number="36.4" class="anchored" data-anchor-id="pod最小运行单位但不是任务边界"><span class="header-section-number">36.4</span> Pod：最小运行单位，但不是任务边界</h2>
 <p>Pod 是 Kubernetes 调度和运行的基本单位。官方文档把 Pod 描述为一组共享运行上下文的容器；实际使用中，单容器 Pod 最常见。</p>
 <p>AI 任务里，一个 Pod 可能是：</p>
 <ul>
@@ -643,8 +679,8 @@ ul.task-list li input[type="checkbox"] {
 <p>但 Pod 通常不是 AI 任务的完整边界。一个分布式训练任务可能包含多个 worker Pod；一个推理服务可能包含多个模型副本、router 和 autoscaler；一个 Ray 应用可能包含 head Pod 和多个 worker Pod。</p>
 <p>所以，平台不能只管理 Pod，还要管理 Pod 之间的关系。</p>
 </section>
-<section id="job一次性任务的基础" class="level2" data-number="30.5">
-<h2 data-number="30.5" class="anchored" data-anchor-id="job一次性任务的基础"><span class="header-section-number">30.5</span> Job：一次性任务的基础</h2>
+<section id="job一次性任务的基础" class="level2" data-number="36.5">
+<h2 data-number="36.5" class="anchored" data-anchor-id="job一次性任务的基础"><span class="header-section-number">36.5</span> Job：一次性任务的基础</h2>
 <p>Kubernetes Job 的语义是运行一个任务直到完成。官方 Job 控制器会创建 Pod，并在 Pod 失败或被删除时根据策略创建新的 Pod。</p>
 <p>这很适合一类简单 AI 任务：</p>
 <ul>
@@ -657,8 +693,8 @@ ul.task-list li input[type="checkbox"] {
 <p>但普通 Job 对复杂分布式训练不够。它不天然表达 master/worker 角色、rank、world size、最小可运行成员、训练框架启动方式或队列公平性。</p>
 <p>这就是 PyTorchJob、TFJob、MPIJob、VolcanoJob、RayJob 等 CRD 出现的原因。它们不是为了替代 Kubernetes，而是把 AI 任务的高层语义补进 Kubernetes API。</p>
 </section>
-<section id="crd-与-operator把专业知识放进控制面" class="level2" data-number="30.6">
-<h2 data-number="30.6" class="anchored" data-anchor-id="crd-与-operator把专业知识放进控制面"><span class="header-section-number">30.6</span> CRD 与 Operator：把专业知识放进控制面</h2>
+<section id="crd-与-operator把专业知识放进控制面" class="level2" data-number="36.6">
+<h2 data-number="36.6" class="anchored" data-anchor-id="crd-与-operator把专业知识放进控制面"><span class="header-section-number">36.6</span> CRD 与 Operator：把专业知识放进控制面</h2>
 <p>CustomResourceDefinition 允许 Kubernetes 扩展新的 API 类型。Operator pattern 则把自定义资源和控制器结合起来，用控制器自动执行领域知识。</p>
 <p>在 AI 场景中，Operator 的价值是把“人知道但 Kubernetes 原生对象不知道”的知识自动化。</p>
 <p>例如：</p>
@@ -671,8 +707,8 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <p>这就是 AI 平台从“脚本提交系统”走向“声明式平台”的关键。</p>
 </section>
-<section id="service推理和分布式协同的入口" class="level2" data-number="30.7">
-<h2 data-number="30.7" class="anchored" data-anchor-id="service推理和分布式协同的入口"><span class="header-section-number">30.7</span> Service：推理和分布式协同的入口</h2>
+<section id="service推理和分布式协同的入口" class="level2" data-number="36.7">
+<h2 data-number="36.7" class="anchored" data-anchor-id="service推理和分布式协同的入口"><span class="header-section-number">36.7</span> Service：推理和分布式协同的入口</h2>
 <p>Service 在 Kubernetes 中提供稳定的服务发现和访问入口。对推理服务来说，它可以把请求路由到一组模型副本。对分布式训练来说，它也可能用于 worker 发现、master 地址暴露或控制面通信。</p>
 <p>但 Service 不解决所有推理问题。它解决的是网络入口和服务发现，不解决：</p>
 <ul>
@@ -686,8 +722,8 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <p>这些能力需要由推理运行时、模型服务平台、网关、控制器和观测系统共同完成。</p>
 </section>
-<section id="volume数据checkpoint-和模型权重" class="level2" data-number="30.8">
-<h2 data-number="30.8" class="anchored" data-anchor-id="volume数据checkpoint-和模型权重"><span class="header-section-number">30.8</span> Volume：数据、checkpoint 和模型权重</h2>
+<section id="volume数据checkpoint-和模型权重" class="level2" data-number="36.8">
+<h2 data-number="36.8" class="anchored" data-anchor-id="volume数据checkpoint-和模型权重"><span class="header-section-number">36.8</span> Volume：数据、checkpoint 和模型权重</h2>
 <p>AI 任务经常离不开持久化存储。</p>
 <p>训练需要读取数据集、写 checkpoint、保存日志和模型产物。推理需要加载模型权重，有时还需要缓存或挂载模型仓库。Kubernetes 通过 Volume、PersistentVolume 和 PersistentVolumeClaim 抽象存储。</p>
 <p>存储的关键不是“能不能挂载”，而是：</p>
@@ -700,8 +736,8 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <p>存储慢，GPU 会空等；checkpoint 慢，训练会抖动；模型加载慢，推理扩容会变慢。</p>
 </section>
-<section id="scheduler资源分配入口" class="level2" data-number="30.9">
-<h2 data-number="30.9" class="anchored" data-anchor-id="scheduler资源分配入口"><span class="header-section-number">30.9</span> Scheduler：资源分配入口</h2>
+<section id="scheduler资源分配入口" class="level2" data-number="36.9">
+<h2 data-number="36.9" class="anchored" data-anchor-id="scheduler资源分配入口"><span class="header-section-number">36.9</span> Scheduler：资源分配入口</h2>
 <p>Kubernetes 默认调度器负责把未绑定节点的 Pod 分配到 Node。它会根据资源、约束和打分策略选择节点。</p>
 <p>AI 平台会在这个基础上叠加更多语义：</p>
 <ul>
@@ -713,8 +749,8 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <p>关键是：Scheduler 看到的是 Pod 级别的调度输入。如果训练或推理的高层语义没有被 CRD、Operator、队列系统或调度插件表达出来，调度器就无法凭空知道。</p>
 </section>
-<section id="ai-平台的分层模型" class="level2" data-number="30.10">
-<h2 data-number="30.10" class="anchored" data-anchor-id="ai-平台的分层模型"><span class="header-section-number">30.10</span> AI 平台的分层模型</h2>
+<section id="ai-平台的分层模型" class="level2" data-number="36.10">
+<h2 data-number="36.10" class="anchored" data-anchor-id="ai-平台的分层模型"><span class="header-section-number">36.10</span> AI 平台的分层模型</h2>
 <p>可以把 AI on Kubernetes 平台分成六层：</p>
 <table class="caption-top table">
 <colgroup>
@@ -764,8 +800,8 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>这张表是后面全书的地图。看到任何一个新技术，先问它在哪一层，再问它解决哪一层的问题。</p>
 </section>
-<section id="常见误区" class="level2" data-number="30.11">
-<h2 data-number="30.11" class="anchored" data-anchor-id="常见误区"><span class="header-section-number">30.11</span> 常见误区</h2>
+<section id="常见误区" class="level2" data-number="36.11">
+<h2 data-number="36.11" class="anchored" data-anchor-id="常见误区"><span class="header-section-number">36.11</span> 常见误区</h2>
 <p><strong>误区一：有了 Kubernetes，就自然有了 AI 平台。</strong><br>
 Kubernetes 提供通用控制面，但 AI 平台还需要任务抽象、训练/推理运行时、GPU 调度、模型治理和观测能力。</p>
 <p><strong>误区二：CRD 越多，平台越强。</strong><br>
@@ -775,8 +811,8 @@ Service 只解决网络发现和访问入口。模型服务还需要模型加载
 <p><strong>误区四：调度器可以自动理解训练任务。</strong><br>
 调度器只能根据输入做决策。训练任务的 gang、rank、拓扑、队列和恢复语义必须被显式表达。</p>
 </section>
-<section id="本章小结" class="level2" data-number="30.12">
-<h2 data-number="30.12" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">30.12</span> 本章小结</h2>
+<section id="本章小结" class="level2" data-number="36.12">
+<h2 data-number="36.12" class="anchored" data-anchor-id="本章小结"><span class="header-section-number">36.12</span> 本章小结</h2>
 <p>读完本章，需要形成四个判断：</p>
 <ul>
 <li>Kubernetes 是 AI 平台的承载层，不是 AI 平台本身。</li>
@@ -1193,12 +1229,12 @@ Service 只解决网络发现和访问入口。模型服务还需要模型加载
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="../../ch/p6/35-platformization.html" class="pagination-link" aria-label="为什么 AI 任务需要平台化">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">为什么 AI 任务需要平台化</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="../../ch/p4/24-kubeflow-v1.html" class="pagination-link" aria-label="Kubeflow Training Operator v1">
-        <span class="nav-page-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">37</span>&nbsp; <span class="chapter-title">Kubeflow Training Operator v1</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
